@@ -93,7 +93,6 @@ sudo docker-compose up -d
 echo "Waiting for services to start..."
 sleep 20
 sudo docker-compose ps
-sudo docker-compose logs -f
 curl http://localhost:8000/health
 sleep 20
 cd ~/semiconductor-platform
@@ -125,13 +124,21 @@ bash StartPlatform
 
 #if docker already running press q and give all credntials it will work. 
 
-Step 7: Verify Installation
+### Step 7: Verify Installation
 Service	Check
 API	curl http://localhost:8000/health
 Frontend	Open http://localhost:5173
 Database	sudo docker exec -it semiconductor-postgres psql -U postgres -d semiconductor -c "\dt"
 
-Step 8: Login
+### Step 8: Login
 Role - Username - Password
 Employee - employee - employee123
 Admin - admin - admin123
+
+### Step 9 How To Stop
+bash
+
+#When to stop you cut off the frontend by ctrl c
+#For the backend you run the other file we mad
+bash stopplatform
+
