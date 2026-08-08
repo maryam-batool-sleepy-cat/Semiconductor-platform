@@ -132,3 +132,19 @@ CREATE TABLE defect_reports (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     resolved_at TIMESTAMP
 );
+
+-- INDEXES FOR PERFORMANCE
+CREATE INDEX idx_wafers_batch_id ON wafers(batch_id);
+CREATE INDEX idx_wafers_current_stage ON wafers(current_stage);
+CREATE INDEX idx_yield_data_wafer_id ON yield_data(wafer_id);
+CREATE INDEX idx_maintenance_equipment_id ON maintenance(equipment_id);
+CREATE INDEX idx_equipment_status ON equipment(status);
+CREATE INDEX idx_defect_reports_wafer_id ON defect_reports(wafer_id);
+);
+
+-- SAMPLE DATA (Optional - for testing)
+-- INSERT INTO equipment (equipment_id, name, type, status) VALUES
+-- ('LITHO-001', 'ASML NXT:1980', 'lithography', 'operational'),
+-- ('ETCH-001', 'Lam Research 2300', 'etching', 'operational');
+);
+
