@@ -143,8 +143,8 @@ CREATE INDEX idx_defect_reports_wafer_id ON defect_reports(wafer_id);
 );
 
 -- SAMPLE DATA (Optional - for testing)
--- INSERT INTO equipment (equipment_id, name, type, status) VALUES
--- ('LITHO-001', 'ASML NXT:1980', 'lithography', 'operational'),
--- ('ETCH-001', 'Lam Research 2300', 'etching', 'operational');
+INSERT INTO equipment (equipment_id, name, type, status) VALUES
+	('LITHO-001', 'ASML NXT:1980', 'lithography', 'operational'),
+	('ETCH-001', 'Lam Research 2300', 'etching', 'operational');
 );
 
