@@ -18,7 +18,7 @@ import {
   TableRow,
   Chip,
 } from '@mui/material';
-import { Refresh, AdminPanelSettings } from '@mui/icons-material';
+import { Refresh } from '@mui/icons-material';
 import Navigation from './Navigation';
 import { dashboardService, waferService } from '../services/api';
 
