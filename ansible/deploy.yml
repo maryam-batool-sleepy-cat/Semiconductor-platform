@@ -1,0 +1,60 @@
+---
+- name: Deploy Semiconductor Platform
+  hosts: all
+  become: yes
+  vars:
+    app_dir: /opt/semiconductor
+    backend_dir: "{{ app_dir }}/backend"
+    frontend_dir: "{{ app_dir }}/frontend"
+
+  tasks:
+    - name: Install required packages
+      apt:
+        name:
+          - docker.io
+          - docker-compose
+          - python3-pip
+          - git
+          - nodejs
+          - npm
+        state: present
+        update_cache: yes
+
+    - name: Clone repository
+      git:
+        repo: https://github.com/maryam-batool-cat/Semiconductor-platform.git
+        dest: "{{ app_dir }}"
+        version: main
+        force: yes
+
+    - name: Create .env file
+      copy:
+        dest: "{{ backend_dir }}/.env"
+        content: |
+          DATABASE_URL=postgresql://postgres:password@localhost:5432/semiconductor
+          REDIS_URL=redis://localhost:6379
+          SECRET_KEY={{ lookup('password', '/dev/null chars=ascii_letters,digits length=50') }}
+
+    - name: Start Docker services
+      docker_compose:
+        project_src: "{{ app_dir }}"
+        state: present
+
+    - name: Install frontend dependencies
+      command: npm install
+      args:
+        chdir: "{{ frontend_dir }}"
+
+    - name: Build frontend
+      command: npm run build
+      args:
+        chdir: "{{ frontend_dir }}"
+
+    - name: Start frontend
+      command: npm run dev
+      args:
+        chdir: "{{ frontend_dir }}"
+      async: 300
+      poll: 0
+      environment:
+        PORT: 3000
