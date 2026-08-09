@@ -45,13 +45,13 @@ curl -fsSL https://rpm.nodesource.com/setup_18.x | sudo bash -
 sudo dnf install nodejs -y
 ```
 
-##Step 2: Clone Repository
+## Step 2: Clone Repository
 ```bash
 git clone https://github.com/maryam-batool-cat/Semiconductor-platform.git
 cd Semiconductor-platform
 ```
 
-### Step 3: Build Enviorment Simulation and Frontend. 
+## Step 3: Build Enviorment Simulation and Frontend. 
 ```bash
 
 #go to frontend directory and install
@@ -72,7 +72,7 @@ exit
 pip install -r backend/requirements.txt
 ```
 
-### Step 4: Makea few files on your main directory (fedora in this case)
+## Step 4: Makea few files on your main directory (fedora in this case)
 #move to your user account (fedora in this case)
 ```bash
 
@@ -126,19 +126,19 @@ bash StartPlatform
 #if docker already running press q and give all credntials it will work. 
 ```
 
-### Step 7: Verify Installation
+## Step 7: Verify Installation
 
 Service	Check
 API	curl http://localhost:8000/health
 Frontend	Open http://localhost:5173
 Database	sudo docker exec -it semiconductor-postgres psql -U postgres -d semiconductor -c "\dt"
 
-### Step 8: Login
+## Step 8: Login
 Role - Username - Password
 Employee - employee - employee123
 Admin - admin - admin123
 
-### Step 9 How To Stop
+## Step 9 How To Stop
 #When to stop you cut off the frontend by ctrl c
 #For the backend you run the other file we mad
 ```bash
