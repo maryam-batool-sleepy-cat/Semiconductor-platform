@@ -126,19 +126,19 @@ bash StartPlatform
 #if docker already running press q and give all credntials it will work. 
 ```
 
-## Step 7: Verify Installation
+## Step 5: Verify Installation
 
 Service	Check
 API	curl http://localhost:8000/health
 Frontend	Open http://localhost:5173
 Database	sudo docker exec -it semiconductor-postgres psql -U postgres -d semiconductor -c "\dt"
 
-## Step 8: Login
+## Step 6: Login
 Role - Username - Password
 Employee - employee - employee123
 Admin - admin - admin123
 
-## Step 9 How To Stop
+## Step 7: How To Stop
 #When to stop you cut off the frontend by ctrl c
 #For the backend you run the other file we mad
 ```bash
