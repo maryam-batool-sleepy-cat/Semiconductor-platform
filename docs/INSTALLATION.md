@@ -139,8 +139,8 @@ Employee - employee - employee123
 Admin - admin - admin123
 
 ## Step 7: How To Stop
-#When to stop you cut off the frontend by ctrl c
-#For the backend you run the other file we mad
+# When you want to stop the platform You first cut off the frontend by ctrl c
+# For the backend you run the other file we made
 ```bash
 bash stopplatform
 
