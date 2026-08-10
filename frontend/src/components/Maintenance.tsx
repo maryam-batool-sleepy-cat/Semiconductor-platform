@@ -33,3 +33,5 @@ import {
 import Navigation from './Navigation';
 import { maintenanceService, equipmentService } from '../services/api';
 
+
+export default Maintenance;
