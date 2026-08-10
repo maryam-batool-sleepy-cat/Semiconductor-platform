@@ -29,8 +29,6 @@ sudo systemctl start docker
 sudo systemctl enable docker
 
 ### Install Python
-
-```bash
 # Ubuntu/Debian
 sudo apt install python3 python3-pip python3-venv -y
 
@@ -38,8 +36,6 @@ sudo apt install python3 python3-pip python3-venv -y
 sudo dnf install python3 python3-pip python3-virtualenv -y
 
 ### Install Node.js
-
-```bash
 # Ubuntu/Debian
 curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
 sudo apt install nodejs -y
@@ -47,14 +43,16 @@ sudo apt install nodejs -y
 # Fedora
 curl -fsSL https://rpm.nodesource.com/setup_18.x | sudo bash -
 sudo dnf install nodejs -y
+```
 
-### Step 2: Clone Repository
-bash
+## Step 2: Clone Repository
+```bash
 git clone https://github.com/maryam-batool-cat/Semiconductor-platform.git
 cd Semiconductor-platform
+```
 
-### Step 3: Build Enviorment Simulation and Frontend. 
-bash
+## Step 3: Build Enviorment Simulation and Frontend. 
+```bash
 
 #go to frontend directory and install
 cd frontend
@@ -72,9 +70,12 @@ exit
 
 # Install Python dependencies
 pip install -r backend/requirements.txt
+```
 
-### Step 4: Makea few files on your main directory (fedora in this case)
+## Step 4: Makea few files on your main directory (fedora in this case)
 #move to your user account (fedora in this case)
+```bash
+
 cd Fedora
 
 # Create file
@@ -123,22 +124,23 @@ cd fedora
 bash StartPlatform
 
 #if docker already running press q and give all credntials it will work. 
+```
 
-### Step 7: Verify Installation
+## Step 5: Verify Installation
+
 Service	Check
 API	curl http://localhost:8000/health
 Frontend	Open http://localhost:5173
 Database	sudo docker exec -it semiconductor-postgres psql -U postgres -d semiconductor -c "\dt"
 
-### Step 8: Login
+## Step 6: Login
 Role - Username - Password
 Employee - employee - employee123
 Admin - admin - admin123
 
-### Step 9 How To Stop
-bash
-
-#When to stop you cut off the frontend by ctrl c
-#For the backend you run the other file we mad
+## Step 7: How To Stop
+# When you want to stop the platform You first cut off the frontend by ctrl c
+# For the backend you run the other file we made
+```bash
 bash stopplatform
 
