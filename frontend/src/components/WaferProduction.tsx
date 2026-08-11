@@ -30,44 +30,16 @@ import {
   Stepper,
   Step,
   StepLabel,
-  StepContent,
 } from '@mui/material';
 import {
   Add as AddIcon,
   Refresh as RefreshIcon,
-  Timeline,
   History,
-  QrCodeScanner,
   PlayArrow,
   CheckCircle,
-  Pending,
-  Cancel,
-  Factory,
-  Speed,
-  Assessment,
 } from '@mui/icons-material';
 import Navigation from './Navigation';
 import { waferService } from '../services/api';
-
-// Standards Compliance Badge
-const StandardsBadge: React.FC<{ standards: string[] }> = ({ standards }) => (
-  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
-    {standards.map((std) => (
-      <Chip
-        key={std}
-        label={std}
-        size="small"
-        sx={{
-          bgcolor: 'rgba(0,255,136,0.05)',
-          color: '#00ff88',
-          border: '1px solid rgba(0,255,136,0.1)',
-          fontSize: '10px',
-          height: 20,
-        }}
-      />
-    ))}
-  </Box>
-);
 
 const WaferProduction: React.FC = () => {
   const [batches, setBatches] = useState<any[]>([]);
@@ -99,7 +71,6 @@ const WaferProduction: React.FC = () => {
       setLoading(true);
       const response = await waferService.getBatches();
       setBatches(response.data.batches || []);
-      // Calculate production progress
       const total = response.data.batches?.length || 0;
       const completed = response.data.batches?.filter((b: any) => b.status === 'completed').length || 0;
       setProductionProgress({ total, completed, percentage: total > 0 ? (completed / total) * 100 : 0 });
@@ -115,7 +86,6 @@ const WaferProduction: React.FC = () => {
       setSnackbar({ open: true, message: 'Please enter a batch name', severity: 'error' });
       return;
     }
-    
     try {
       await waferService.createBatch(newBatch);
       setSnackbar({ open: true, message: '✅ Batch created successfully!', severity: 'success' });
@@ -167,21 +137,15 @@ const WaferProduction: React.FC = () => {
   };
 
   const getStatusLabel = (status: string) => status.replace('_', ' ').toUpperCase();
-
-  const getStageStep = (stage: string) => {
-    return stages.indexOf(stage);
-  };
-
-  const isStageComplete = (currentStage: string, stageIndex: number) => {
-    return getStageStep(currentStage) >= stageIndex;
-  };
+  const getStageStep = (stage: string) => stages.indexOf(stage);
+  const isStageComplete = (currentStage: string, stageIndex: number) => getStageStep(currentStage) >= stageIndex;
 
   return (
     <Box sx={{ minHeight: '100vh', background: '#000000', position: 'relative', zIndex: 1 }}>
       <Navigation isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} />
       
       <Container maxWidth="xl" sx={{ py: 3 }}>
-        {/* Page Header with Standards */}
+        {/* Page Header */}
         <Paper sx={{ p: 3, mb: 3, background: 'rgba(0,255,136,0.03)', border: '1px solid rgba(0,255,136,0.05)' }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap' }}>
             <Box>
@@ -207,7 +171,6 @@ const WaferProduction: React.FC = () => {
               </Button>
             </Box>
           </Box>
-          <StandardsBadge standards={['SEMI E10', 'SEMI E79', 'IEC 62443', 'ISO 9001', 'ISO 55001', 'ISO/IEC 27001', 'NIST CSF 2.0', 'NIST SP 800-82', 'ISA-95', 'COBIT 2019', 'ITIL 4']} />
         </Paper>
 
         {/* Tabs */}
@@ -218,7 +181,7 @@ const WaferProduction: React.FC = () => {
           <Tab label="⏱️ Production Timestamps" />
         </Tabs>
 
-        {/* Tab 1: Batches Table */}
+        {/* Tab 1: Batches */}
         {activeTab === 0 && (
           <Paper sx={{ p: 3, background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.05)' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
@@ -230,7 +193,6 @@ const WaferProduction: React.FC = () => {
                 <IconButton onClick={fetchBatches} sx={{ color: '#888' }}><RefreshIcon /></IconButton>
               </Box>
             </Box>
-            
             {loading ? (
               <Box sx={{ py: 4 }}><LinearProgress sx={{ bgcolor: 'rgba(0,255,136,0.1)' }} /></Box>
             ) : (
@@ -278,9 +240,7 @@ const WaferProduction: React.FC = () => {
         {activeTab === 1 && (
           <Paper sx={{ p: 3, background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.05)' }}>
             <Typography variant="h6" sx={{ color: '#00cc66', mb: 2 }}>🔍 Track Wafer Movement</Typography>
-            <Typography variant="body2" sx={{ color: '#888', mb: 3 }}>
-              Monitor wafer location and movement through production stages.
-            </Typography>
+            <Typography variant="body2" sx={{ color: '#888', mb: 3 }}>Monitor wafer location and movement through production stages.</Typography>
             <Grid container spacing={2}>
               {batches.filter(b => b.status !== 'completed').slice(0, 5).map((batch) => (
                 <Grid item xs={12} key={batch.id}>
@@ -294,17 +254,7 @@ const WaferProduction: React.FC = () => {
                         {stageLabels.map((label, index) => (
                           <Step key={index} completed={isStageComplete(batch.status, index)}>
                             <StepLabel StepIconComponent={() => (
-                              <Box sx={{ 
-                                width: 24, 
-                                height: 24, 
-                                borderRadius: '50%', 
-                                bgcolor: isStageComplete(batch.status, index) ? '#00ff88' : 'rgba(255,255,255,0.1)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                color: isStageComplete(batch.status, index) ? '#000' : '#888',
-                                fontSize: 12,
-                              }}>
+                              <Box sx={{ width: 24, height: 24, borderRadius: '50%', bgcolor: isStageComplete(batch.status, index) ? '#00ff88' : 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: isStageComplete(batch.status, index) ? '#000' : '#888', fontSize: 12 }}>
                                 {isStageComplete(batch.status, index) ? '✓' : index + 1}
                               </Box>
                             )}>
@@ -324,9 +274,7 @@ const WaferProduction: React.FC = () => {
                 </Grid>
               ))}
               {batches.filter(b => b.status !== 'completed').length === 0 && (
-                <Typography sx={{ color: '#888', textAlign: 'center', width: '100%', py: 4 }}>
-                  No active wafers in production
-                </Typography>
+                <Typography sx={{ color: '#888', textAlign: 'center', width: '100%', py: 4 }}>No active wafers in production</Typography>
               )}
             </Grid>
           </Paper>
@@ -336,9 +284,7 @@ const WaferProduction: React.FC = () => {
         {activeTab === 2 && (
           <Paper sx={{ p: 3, background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.05)' }}>
             <Typography variant="h6" sx={{ color: '#33ff99', mb: 2 }}>📈 Fabrication Progress</Typography>
-            <Typography variant="body2" sx={{ color: '#888', mb: 3 }}>
-              Real-time monitoring of wafer fabrication progress.
-            </Typography>
+            <Typography variant="body2" sx={{ color: '#888', mb: 3 }}>Real-time monitoring of wafer fabrication progress.</Typography>
             <Grid container spacing={3}>
               <Grid item xs={12} md={4}>
                 <Card sx={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(51,255,153,0.1)' }}>
@@ -347,11 +293,7 @@ const WaferProduction: React.FC = () => {
                     <Typography variant="h3" sx={{ color: '#33ff99', fontWeight: 'bold' }}>
                       {productionProgress ? Math.round(productionProgress.percentage) : 0}%
                     </Typography>
-                    <LinearProgress 
-                      variant="determinate" 
-                      value={productionProgress ? productionProgress.percentage : 0} 
-                      sx={{ mt: 1, bgcolor: 'rgba(51,255,153,0.1)', '& .MuiLinearProgress-bar': { bgcolor: '#33ff99' } }} 
-                    />
+                    <LinearProgress variant="determinate" value={productionProgress ? productionProgress.percentage : 0} sx={{ mt: 1, bgcolor: 'rgba(51,255,153,0.1)', '& .MuiLinearProgress-bar': { bgcolor: '#33ff99' } }} />
                     <Typography variant="body2" color="#888" sx={{ mt: 1 }}>
                       {productionProgress ? `${productionProgress.completed} / ${productionProgress.total} batches completed` : 'No data'}
                     </Typography>
@@ -366,11 +308,7 @@ const WaferProduction: React.FC = () => {
                         <CardContent>
                           <Typography variant="body2" sx={{ color: '#fff' }}>{batch.batch_name}</Typography>
                           <Typography variant="caption" color="#888">Wafer #{batch.id}</Typography>
-                          <LinearProgress 
-                            variant="determinate" 
-                            value={Math.round((getStageStep(batch.status) / 5) * 100)} 
-                            sx={{ mt: 1, bgcolor: 'rgba(51,255,153,0.1)', '& .MuiLinearProgress-bar': { bgcolor: batch.status === 'completed' ? '#00ff88' : '#33ff99' } }} 
-                          />
+                          <LinearProgress variant="determinate" value={Math.round((getStageStep(batch.status) / 5) * 100)} sx={{ mt: 1, bgcolor: 'rgba(51,255,153,0.1)', '& .MuiLinearProgress-bar': { bgcolor: batch.status === 'completed' ? '#00ff88' : '#33ff99' } }} />
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
                             <Typography variant="caption" color="#888">Stage {getStageStep(batch.status) + 1}/6</Typography>
                             <Chip label={getStatusLabel(batch.status)} size="small" color={getStatusColor(batch.status)} sx={{ height: 20, fontSize: 10 }} />
@@ -389,9 +327,7 @@ const WaferProduction: React.FC = () => {
         {activeTab === 3 && (
           <Paper sx={{ p: 3, background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.05)' }}>
             <Typography variant="h6" sx={{ color: '#66ffbb', mb: 2 }}>⏱️ Production Timestamps</Typography>
-            <Typography variant="body2" sx={{ color: '#888', mb: 3 }}>
-              Record production timestamps for each wafer stage.
-            </Typography>
+            <Typography variant="body2" sx={{ color: '#888', mb: 3 }}>Record production timestamps for each wafer stage.</Typography>
             <TableContainer>
               <Table>
                 <TableHead>
@@ -425,33 +361,9 @@ const WaferProduction: React.FC = () => {
         <Dialog open={openDialog} onClose={() => setOpenDialog(false)} PaperProps={{ sx: { bgcolor: '#0a0a0a', color: '#fff', border: '1px solid rgba(255,255,255,0.05)' } }}>
           <DialogTitle sx={{ color: '#00ff88' }}>Create New Wafer Batch</DialogTitle>
           <DialogContent>
-            <TextField
-              margin="dense"
-              label="Batch Name"
-              fullWidth
-              value={newBatch.batch_name}
-              onChange={(e) => setNewBatch({ ...newBatch, batch_name: e.target.value })}
-              placeholder="e.g., BATCH-2024-001"
-              sx={{ input: { color: '#fff' }, label: { color: '#888' }, mb: 2 }}
-            />
-            <TextField
-              margin="dense"
-              label="Product Type"
-              fullWidth
-              value={newBatch.product_type}
-              onChange={(e) => setNewBatch({ ...newBatch, product_type: e.target.value })}
-              sx={{ input: { color: '#fff' }, label: { color: '#888' }, mb: 2 }}
-            />
-            <TextField
-              margin="dense"
-              label="Total Wafers (20-30)"
-              type="number"
-              fullWidth
-              value={newBatch.total_wafers}
-              onChange={(e) => setNewBatch({ ...newBatch, total_wafers: parseInt(e.target.value) || 0 })}
-              inputProps={{ min: 20, max: 30 }}
-              sx={{ input: { color: '#fff' }, label: { color: '#888' } }}
-            />
+            <TextField margin="dense" label="Batch Name" fullWidth value={newBatch.batch_name} onChange={(e) => setNewBatch({ ...newBatch, batch_name: e.target.value })} placeholder="e.g., BATCH-2024-001" sx={{ input: { color: '#fff' }, label: { color: '#888' }, mb: 2 }} />
+            <TextField margin="dense" label="Product Type" fullWidth value={newBatch.product_type} onChange={(e) => setNewBatch({ ...newBatch, product_type: e.target.value })} sx={{ input: { color: '#fff' }, label: { color: '#888' }, mb: 2 }} />
+            <TextField margin="dense" label="Total Wafers (20-30)" type="number" fullWidth value={newBatch.total_wafers} onChange={(e) => setNewBatch({ ...newBatch, total_wafers: parseInt(e.target.value) || 0 })} inputProps={{ min: 20, max: 30 }} sx={{ input: { color: '#fff' }, label: { color: '#888' } }} />
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setOpenDialog(false)} sx={{ color: '#888' }}>Cancel</Button>
