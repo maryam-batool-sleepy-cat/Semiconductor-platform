@@ -25,7 +25,6 @@ export const waferService = {
   getWafer: (waferId: string) => api.get(`/wafers/wafers/${waferId}`),
   getActiveWafers: () => api.get('/wafers/active'),
   getProductionProgress: () => api.get('/wafers/progress'),
-  // NEW: Auto-advance endpoints
   autoAdvanceBatch: (batchId: number) => api.post(`/wafers/auto-advance/${batchId}`),
   autoCompleteBatch: (batchId: number) => api.post(`/wafers/auto-complete/${batchId}`),
 };
@@ -42,9 +41,12 @@ export const equipmentService = {
 
 // Maintenance
 export const maintenanceService = {
-  scheduleMaintenance: (data: any) => api.post('/maintenance', data),
+  scheduleMaintenance: (data: any) => api.post('/maintenance/schedule', data),
   getPredictions: () => api.get('/maintenance/predictions'),
   getAlerts: () => api.get('/maintenance/alerts'),
+  getHistory: (equipmentId?: number) => api.get('/maintenance/history', { params: { equipment_id: equipmentId } }),
+  completeMaintenance: (maintenanceId: number) => api.post(`/maintenance/complete/${maintenanceId}`),
+  getExecutiveReport: () => api.get('/maintenance/executive-report'),
 };
 
 // Yield
