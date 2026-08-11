@@ -25,6 +25,9 @@ export const waferService = {
   getWafer: (waferId: string) => api.get(`/wafers/wafers/${waferId}`),
   getActiveWafers: () => api.get('/wafers/active'),
   getProductionProgress: () => api.get('/wafers/progress'),
+  // NEW: Auto-advance endpoints
+  autoAdvanceBatch: (batchId: number) => api.post(`/wafers/auto-advance/${batchId}`),
+  autoCompleteBatch: (batchId: number) => api.post(`/wafers/auto-complete/${batchId}`),
 };
 
 // Equipment

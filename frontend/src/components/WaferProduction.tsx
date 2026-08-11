@@ -37,6 +37,8 @@ import {
   History,
   PlayArrow,
   CheckCircle,
+  FastForward,
+  DoneAll,
 } from '@mui/icons-material';
 import Navigation from './Navigation';
 import { waferService } from '../services/api';
@@ -51,6 +53,7 @@ const WaferProduction: React.FC = () => {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as any });
   const [activeTab, setActiveTab] = useState(0);
   const [productionProgress, setProductionProgress] = useState<any>(null);
+  const [autoAdvancing, setAutoAdvancing] = useState<number | null>(null);
   const [newBatch, setNewBatch] = useState({
     batch_name: '',
     product_type: 'AI-Accelerator',
@@ -119,6 +122,51 @@ const WaferProduction: React.FC = () => {
       fetchBatches();
     } catch (error) {
       setSnackbar({ open: true, message: 'Failed to update stage', severity: 'error' });
+    }
+  };
+
+  // NEW: Auto-advance batch
+  const handleAutoAdvance = async (batchId: number) => {
+    try {
+      setAutoAdvancing(batchId);
+      const response = await waferService.autoAdvanceBatch(batchId);
+      setSnackbar({ 
+        open: true, 
+        message: `✅ ${response.data.message}`, 
+        severity: 'success' 
+      });
+      fetchBatches();
+      // Refresh the history if open
+      if (selectedBatch && selectedBatch.batch.id === batchId) {
+        const historyRes = await waferService.getBatchHistory(batchId);
+        setSelectedBatch(historyRes.data);
+      }
+    } catch (error) {
+      setSnackbar({ open: true, message: '❌ Failed to auto-advance batch', severity: 'error' });
+    } finally {
+      setAutoAdvancing(null);
+    }
+  };
+
+  // NEW: Auto-complete entire batch
+  const handleAutoComplete = async (batchId: number) => {
+    try {
+      setAutoAdvancing(batchId);
+      const response = await waferService.autoCompleteBatch(batchId);
+      setSnackbar({ 
+        open: true, 
+        message: `✅ ${response.data.message}`, 
+        severity: 'success' 
+      });
+      fetchBatches();
+      if (selectedBatch && selectedBatch.batch.id === batchId) {
+        const historyRes = await waferService.getBatchHistory(batchId);
+        setSelectedBatch(historyRes.data);
+      }
+    } catch (error) {
+      setSnackbar({ open: true, message: '❌ Failed to complete batch', severity: 'error' });
+    } finally {
+      setAutoAdvancing(null);
     }
   };
 
@@ -220,11 +268,37 @@ const WaferProduction: React.FC = () => {
                           <TableCell><Chip label={getStatusLabel(batch.status)} size="small" color={getStatusColor(batch.status)} /></TableCell>
                           <TableCell sx={{ color: '#888' }}>{new Date(batch.created_at).toLocaleDateString()}</TableCell>
                           <TableCell align="center">
-                            <Tooltip title="View History">
-                              <IconButton size="small" onClick={() => handleViewHistory(batch)} sx={{ color: '#00ff88' }}>
-                                <History />
-                              </IconButton>
-                            </Tooltip>
+                            <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
+                              <Tooltip title="View History">
+                                <IconButton size="small" onClick={() => handleViewHistory(batch)} sx={{ color: '#00ff88' }}>
+                                  <History />
+                                </IconButton>
+                              </Tooltip>
+                              {batch.status !== 'completed' && (
+                                <>
+                                  <Tooltip title="Auto-Advance One Stage">
+                                    <IconButton 
+                                      size="small" 
+                                      onClick={() => handleAutoAdvance(batch.id)}
+                                      disabled={autoAdvancing === batch.id}
+                                      sx={{ color: '#66ffbb' }}
+                                    >
+                                      <FastForward />
+                                    </IconButton>
+                                  </Tooltip>
+                                  <Tooltip title="Auto-Complete All">
+                                    <IconButton 
+                                      size="small" 
+                                      onClick={() => handleAutoComplete(batch.id)}
+                                      disabled={autoAdvancing === batch.id}
+                                      sx={{ color: '#00ff88' }}
+                                    >
+                                      <DoneAll />
+                                    </IconButton>
+                                  </Tooltip>
+                                </>
+                              )}
+                            </Box>
                           </TableCell>
                         </TableRow>
                       ))

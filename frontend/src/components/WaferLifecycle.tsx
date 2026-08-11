@@ -30,10 +30,7 @@ import {
   Button,
 } from '@mui/material';
 import {
-  Timeline,
   CheckCircle,
-  Pending,
-  Cancel,
   Factory,
   PlayArrow,
   Refresh,
@@ -61,6 +58,7 @@ const WaferLifecycle: React.FC = () => {
 
   const fetchData = async () => {
     try {
+      setLoading(true);
       const response = await waferService.getBatches();
       setBatches(response.data.batches || []);
       setLoading(false);
@@ -94,10 +92,19 @@ const WaferLifecycle: React.FC = () => {
     }
   };
 
-  const getStatusLabel = (status: string) => status.replace('_', ' ').toUpperCase();
-  const getStageStep = (stage: string) => stages.indexOf(stage);
+  // FIXED: Add null safety to getStatusLabel
+  const getStatusLabel = (status: string) => {
+    if (!status) return 'REGISTERED';
+    return status.replace('_', ' ').toUpperCase();
+  };
+
+  const getStageStep = (stage: string) => {
+    if (!stage) return 0;
+    return stages.indexOf(stage);
+  };
 
   const getStatusColor = (status: string) => {
+    if (!status) return 'info';
     const colors: Record<string, any> = {
       completed: 'success',
       in_production: 'warning',
@@ -111,14 +118,16 @@ const WaferLifecycle: React.FC = () => {
     return colors[status] || 'default';
   };
 
-  const totalBatches = batches.length;
-  const completedBatches = batches.filter(b => b.status === 'completed').length;
-  const inProgressBatches = batches.filter(b => b.status !== 'completed' && b.status !== 'rejected').length;
-  const rejectedBatches = batches.filter(b => b.status === 'rejected').length;
+  // Safe data access
+  const safeBatches = batches || [];
+  const totalBatches = safeBatches.length;
+  const completedBatches = safeBatches.filter((b: any) => b?.status === 'completed').length;
+  const inProgressBatches = safeBatches.filter((b: any) => b?.status !== 'completed' && b?.status !== 'rejected').length;
+  const rejectedBatches = safeBatches.filter((b: any) => b?.status === 'rejected').length;
 
   const stageDistribution = stages.map((stage, index) => ({
     stage: stageLabels[index],
-    count: batches.filter(b => b.status === stage).length,
+    count: safeBatches.filter((b: any) => b?.status === stage).length,
     color: stageColors[index],
   }));
 
@@ -219,11 +228,11 @@ const WaferLifecycle: React.FC = () => {
           <Grid container spacing={2}>
             {loading ? (
               <Box sx={{ width: '100%', py: 4 }}><LinearProgress sx={{ bgcolor: 'rgba(0,255,136,0.1)' }} /></Box>
-            ) : batches.length === 0 ? (
+            ) : safeBatches.length === 0 ? (
               <Typography sx={{ color: '#888', textAlign: 'center', width: '100%', py: 4 }}>No batches registered</Typography>
             ) : (
-              batches.map((batch) => (
-                <Grid item xs={12} md={6} key={batch.id}>
+              safeBatches.map((batch: any) => (
+                <Grid item xs={12} md={6} key={batch?.id || Math.random()}>
                   <Card 
                     sx={{ 
                       background: 'rgba(0,0,0,0.4)', 
@@ -235,42 +244,42 @@ const WaferLifecycle: React.FC = () => {
                         transform: 'translateY(-2px)',
                       },
                     }}
-                    onClick={() => handleViewWafers(batch)}
+                    onClick={() => batch?.id && handleViewWafers(batch)}
                   >
                     <CardContent>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                        <Typography sx={{ color: '#fff', fontWeight: 600 }}>{batch.batch_name}</Typography>
+                        <Typography sx={{ color: '#fff', fontWeight: 600 }}>{batch?.batch_name || 'Unknown'}</Typography>
                         <Chip 
-                          label={batch.status === 'completed' ? '✅ COMPLETE' : getStatusLabel(batch.status)} 
+                          label={batch?.status === 'completed' ? '✅ COMPLETE' : getStatusLabel(batch?.status)} 
                           size="small" 
-                          color={getStatusColor(batch.status)} 
+                          color={getStatusColor(batch?.status)} 
                         />
                       </Box>
                       <Stepper 
-                        activeStep={getStageStep(batch.status)} 
+                        activeStep={getStageStep(batch?.status)} 
                         orientation="horizontal" 
                         sx={{ mt: 1, '& .MuiStepConnector-root': { display: 'none' } }}
                       >
                         {stageLabels.map((label, index) => (
-                          <Step key={index} completed={getStageStep(batch.status) >= index}>
+                          <Step key={index} completed={getStageStep(batch?.status) >= index}>
                             <StepLabel 
                               StepIconComponent={() => (
                                 <Box sx={{ 
                                   width: 20, 
                                   height: 20, 
                                   borderRadius: '50%', 
-                                  bgcolor: getStageStep(batch.status) >= index ? '#00ff88' : 'rgba(255,255,255,0.1)',
+                                  bgcolor: getStageStep(batch?.status) >= index ? '#00ff88' : 'rgba(255,255,255,0.1)',
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
-                                  color: getStageStep(batch.status) >= index ? '#000' : '#888',
+                                  color: getStageStep(batch?.status) >= index ? '#000' : '#888',
                                   fontSize: 10,
                                 }}>
-                                  {getStageStep(batch.status) >= index ? '✓' : index + 1}
+                                  {getStageStep(batch?.status) >= index ? '✓' : index + 1}
                                 </Box>
                               )}
                             >
-                              <Typography variant="caption" sx={{ color: getStageStep(batch.status) >= index ? '#00ff88' : '#888', fontSize: 8 }}>
+                              <Typography variant="caption" sx={{ color: getStageStep(batch?.status) >= index ? '#00ff88' : '#888', fontSize: 8 }}>
                                 {label}
                               </Typography>
                             </StepLabel>
@@ -279,10 +288,10 @@ const WaferLifecycle: React.FC = () => {
                       </Stepper>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
                         <Typography variant="caption" color="#888">
-                          Created: {new Date(batch.created_at).toLocaleDateString()}
+                          Created: {batch?.created_at ? new Date(batch.created_at).toLocaleDateString() : 'N/A'}
                         </Typography>
                         <Typography variant="caption" color="#888">
-                          Progress: {Math.round((getStageStep(batch.status) / 5) * 100)}%
+                          Progress: {batch?.status ? Math.round((getStageStep(batch.status) / 5) * 100) : 0}%
                         </Typography>
                         <Typography variant="caption" sx={{ color: '#00ff88' }}>
                           Click to view wafers →
@@ -307,7 +316,7 @@ const WaferLifecycle: React.FC = () => {
           <DialogTitle sx={{ color: '#00ff88' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <Factory />
-              Wafers in: {selectedBatch?.batch?.batch_name}
+              Wafers in: {selectedBatch?.batch?.batch_name || 'Batch'}
               <Chip 
                 label={selectedBatch?.batch?.status === 'completed' ? '✅ COMPLETE' : getStatusLabel(selectedBatch?.batch?.status)} 
                 size="small" 
@@ -321,20 +330,20 @@ const WaferLifecycle: React.FC = () => {
                 <Box sx={{ display: 'flex', gap: 4, mb: 3, flexWrap: 'wrap' }}>
                   <Box>
                     <Typography color="#888" variant="caption">Product Type</Typography>
-                    <Typography color="#fff">{selectedBatch.batch.product_type}</Typography>
+                    <Typography color="#fff">{selectedBatch.batch?.product_type || 'N/A'}</Typography>
                   </Box>
                   <Box>
                     <Typography color="#888" variant="caption">Total Wafers</Typography>
-                    <Typography color="#fff">{selectedBatch.batch.total_wafers}</Typography>
+                    <Typography color="#fff">{selectedBatch.batch?.total_wafers || 0}</Typography>
                   </Box>
                   <Box>
                     <Typography color="#888" variant="caption">Completed</Typography>
-                    <Typography color="#00ff88">{selectedBatch.completed}/{selectedBatch.total_wafers}</Typography>
+                    <Typography color="#00ff88">{selectedBatch.completed || 0}/{selectedBatch.batch?.total_wafers || 0}</Typography>
                   </Box>
                   <Box>
                     <Typography color="#888" variant="caption">Completion Rate</Typography>
                     <Typography color="#00ff88">
-                      {selectedBatch.total_wafers > 0 ? Math.round((selectedBatch.completed / selectedBatch.total_wafers) * 100) : 0}%
+                      {selectedBatch.batch?.total_wafers > 0 ? Math.round((selectedBatch.completed || 0) / selectedBatch.batch.total_wafers * 100) : 0}%
                     </Typography>
                   </Box>
                 </Box>
@@ -358,19 +367,19 @@ const WaferLifecycle: React.FC = () => {
                     </TableHead>
                     <TableBody>
                       {selectedBatch.wafers?.map((wafer: any) => {
-                        const isCompleted = wafer.current_stage === 'completed';
-                        const isRejected = wafer.current_stage === 'rejected';
+                        const isCompleted = wafer?.current_stage === 'completed';
+                        const isRejected = wafer?.current_stage === 'rejected';
                         return (
-                          <TableRow key={wafer.id} sx={{ 
+                          <TableRow key={wafer?.id || Math.random()} sx={{ 
                             bgcolor: isCompleted ? 'rgba(0,255,136,0.05)' : 'transparent',
                           }}>
-                            <TableCell sx={{ color: '#fff' }}>{wafer.wafer_id}</TableCell>
-                            <TableCell sx={{ color: '#aaa' }}>{wafer.position}</TableCell>
+                            <TableCell sx={{ color: '#fff' }}>{wafer?.wafer_id || 'N/A'}</TableCell>
+                            <TableCell sx={{ color: '#aaa' }}>{wafer?.position || 'N/A'}</TableCell>
                             <TableCell>
                               <Chip 
-                                label={getStatusLabel(wafer.current_stage)} 
+                                label={getStatusLabel(wafer?.current_stage)} 
                                 size="small" 
-                                color={getStatusColor(wafer.current_stage)} 
+                                color={getStatusColor(wafer?.current_stage)} 
                               />
                             </TableCell>
                             <TableCell>
@@ -386,14 +395,14 @@ const WaferLifecycle: React.FC = () => {
                               {!isCompleted && !isRejected && (
                                 <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
                                   {['lithography', 'etching', 'deposition', 'inspection', 'completed'].map((stage) => {
-                                    const currentIndex = stages.indexOf(wafer.current_stage);
+                                    const currentIndex = stages.indexOf(wafer?.current_stage || 'registered');
                                     const targetIndex = stages.indexOf(stage);
                                     if (targetIndex === currentIndex + 1) {
                                       return (
                                         <Tooltip key={stage} title={`Move to ${stage}`}>
                                           <IconButton 
                                             size="small" 
-                                            onClick={() => handleUpdateStage(wafer.wafer_id, stage)} 
+                                            onClick={() => handleUpdateStage(wafer?.wafer_id, stage)} 
                                             sx={{ color: stage === 'completed' ? '#00ff88' : '#66ffbb' }}
                                           >
                                             <PlayArrow fontSize="small" />
@@ -426,20 +435,20 @@ const WaferLifecycle: React.FC = () => {
                   </Typography>
                   <LinearProgress 
                     variant="determinate" 
-                    value={selectedBatch.total_wafers > 0 ? (selectedBatch.completed / selectedBatch.total_wafers) * 100 : 0} 
+                    value={selectedBatch.batch?.total_wafers > 0 ? (selectedBatch.completed || 0) / selectedBatch.batch.total_wafers * 100 : 0} 
                     sx={{ 
                       height: 10, 
                       borderRadius: 5,
                       bgcolor: 'rgba(255,255,255,0.05)',
                       '& .MuiLinearProgress-bar': { 
-                        bgcolor: selectedBatch.completed === selectedBatch.total_wafers ? '#00ff88' : '#33ff99',
+                        bgcolor: (selectedBatch.completed || 0) === selectedBatch.batch?.total_wafers ? '#00ff88' : '#33ff99',
                         borderRadius: 5,
                       } 
                     }} 
                   />
                   <Typography variant="caption" color="#888" sx={{ mt: 0.5, display: 'block' }}>
-                    {selectedBatch.completed} / {selectedBatch.total_wafers} wafers completed 
-                    ({selectedBatch.total_wafers > 0 ? Math.round((selectedBatch.completed / selectedBatch.total_wafers) * 100) : 0}%)
+                    {selectedBatch.completed || 0} / {selectedBatch.batch?.total_wafers || 0} wafers completed 
+                    ({selectedBatch.batch?.total_wafers > 0 ? Math.round((selectedBatch.completed || 0) / selectedBatch.batch.total_wafers * 100) : 0}%)
                   </Typography>
                 </Box>
               </Box>

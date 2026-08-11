@@ -2,15 +2,25 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
+from pydantic import BaseModel
 from app.core.database import get_db
 from app.models.wafer import Wafer, WaferBatch, WaferStatus
 from app.schemas.wafer import WaferCreate, WaferResponse, BatchCreate, BatchResponse
+import random
 
 router = APIRouter()
 
+class StageUpdate(BaseModel):
+    stage: str
+
+class AutoAdvanceResponse(BaseModel):
+    wafer_id: str
+    old_stage: str
+    new_stage: str
+    message: str
+
 @router.post("/batches", response_model=BatchResponse)
 def create_batch(batch: BatchCreate, db: Session = Depends(get_db)):
-    """Register a new wafer batch"""
     db_batch = WaferBatch(
         batch_name=batch.batch_name,
         product_type=batch.product_type,
@@ -20,7 +30,6 @@ def create_batch(batch: BatchCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(db_batch)
     
-    # Create individual wafers in the batch
     for i in range(batch.total_wafers):
         wafer = Wafer(
             wafer_id=f"{batch.batch_name}-{i+1:03d}",
@@ -34,7 +43,6 @@ def create_batch(batch: BatchCreate, db: Session = Depends(get_db)):
 
 @router.get("/batches")
 def get_batches(db: Session = Depends(get_db)):
-    """Get all wafer batches"""
     batches = db.query(WaferBatch).all()
     return {
         "batches": batches,
@@ -43,7 +51,6 @@ def get_batches(db: Session = Depends(get_db)):
 
 @router.get("/wafers/{wafer_id}", response_model=WaferResponse)
 def get_wafer(wafer_id: str, db: Session = Depends(get_db)):
-    """Get wafer by ID with full lifecycle history"""
     wafer = db.query(Wafer).filter(Wafer.wafer_id == wafer_id).first()
     if not wafer:
         raise HTTPException(status_code=404, detail="Wafer not found")
@@ -52,21 +59,23 @@ def get_wafer(wafer_id: str, db: Session = Depends(get_db)):
 @router.patch("/wafers/{wafer_id}/stage")
 def update_wafer_stage(
     wafer_id: str,
-    stage: WaferStatus,
+    stage_update: StageUpdate,
     db: Session = Depends(get_db)
 ):
-    """Update wafer production stage"""
     wafer = db.query(Wafer).filter(Wafer.wafer_id == wafer_id).first()
     if not wafer:
         raise HTTPException(status_code=404, detail="Wafer not found")
     
-    wafer.current_stage = stage
-    wafer.updated_at = datetime.utcnow()
-    db.commit()
-    db.refresh(wafer)
+    try:
+        new_stage = WaferStatus(stage_update.stage)
+        wafer.current_stage = new_stage
+        wafer.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(wafer)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Invalid stage: {stage_update.stage}")
     
-    # Update batch status if all wafers completed
-    if stage == WaferStatus.COMPLETED:
+    if new_stage == WaferStatus.COMPLETED:
         batch = db.query(WaferBatch).filter(WaferBatch.id == wafer.batch_id).first()
         completed_wafers = db.query(Wafer).filter(
             Wafer.batch_id == batch.id,
@@ -76,11 +85,10 @@ def update_wafer_stage(
             batch.status = WaferStatus.COMPLETED
             db.commit()
     
-    return {"message": f"Wafer {wafer_id} updated to {stage.value}", "wafer": wafer}
+    return {"message": f"Wafer {wafer_id} updated to {new_stage.value}", "wafer": wafer}
 
 @router.get("/batches/{batch_id}/history")
 def get_batch_history(batch_id: int, db: Session = Depends(get_db)):
-    """Get complete production history for a batch"""
     batch = db.query(WaferBatch).filter(WaferBatch.id == batch_id).first()
     if not batch:
         raise HTTPException(status_code=404, detail="Batch not found")
@@ -91,4 +99,90 @@ def get_batch_history(batch_id: int, db: Session = Depends(get_db)):
         "wafers": wafers,
         "total_wafers": len(wafers),
         "completed": sum(1 for w in wafers if w.current_stage == WaferStatus.COMPLETED)
+    }
+
+# NEW: Auto-advance endpoint
+@router.post("/auto-advance/{batch_id}")
+def auto_advance_batch(batch_id: int, db: Session = Depends(get_db)):
+    """Automatically advance all wafers in a batch to the next stage"""
+    batch = db.query(WaferBatch).filter(WaferBatch.id == batch_id).first()
+    if not batch:
+        raise HTTPException(status_code=404, detail="Batch not found")
+    
+    if batch.status == WaferStatus.COMPLETED:
+        return {"message": "Batch already completed", "wafers": []}
+    
+    # Define stage order
+    stage_order = [
+        WaferStatus.REGISTERED,
+        WaferStatus.LITHOGRAPHY,
+        WaferStatus.ETCHING,
+        WaferStatus.DEPOSITION,
+        WaferStatus.INSPECTION,
+        WaferStatus.COMPLETED
+    ]
+    
+    updated_wafers = []
+    
+    for wafer in batch.wafers:
+        if wafer.current_stage == WaferStatus.COMPLETED:
+            continue
+            
+        current_idx = stage_order.index(wafer.current_stage)
+        next_idx = min(current_idx + 1, len(stage_order) - 1)
+        next_stage = stage_order[next_idx]
+        
+        wafer.current_stage = next_stage
+        wafer.updated_at = datetime.utcnow()
+        updated_wafers.append({
+            "wafer_id": wafer.wafer_id,
+            "old_stage": stage_order[current_idx].value,
+            "new_stage": next_stage.value
+        })
+    
+    db.commit()
+    
+    # Check if all wafers are completed
+    all_completed = all(w.current_stage == WaferStatus.COMPLETED for w in batch.wafers)
+    if all_completed:
+        batch.status = WaferStatus.COMPLETED
+        db.commit()
+    
+    return {
+        "message": f"Advanced {len(updated_wafers)} wafers to next stage",
+        "wafers": updated_wafers,
+        "batch_status": batch.status.value
+    }
+
+# NEW: Auto-complete entire batch
+@router.post("/auto-complete/{batch_id}")
+def auto_complete_batch(batch_id: int, db: Session = Depends(get_db)):
+    """Automatically complete all wafers in a batch"""
+    batch = db.query(WaferBatch).filter(WaferBatch.id == batch_id).first()
+    if not batch:
+        raise HTTPException(status_code=404, detail="Batch not found")
+    
+    if batch.status == WaferStatus.COMPLETED:
+        return {"message": "Batch already completed", "wafers": []}
+    
+    completed_wafers = []
+    
+    for wafer in batch.wafers:
+        if wafer.current_stage != WaferStatus.COMPLETED:
+            old_stage = wafer.current_stage.value
+            wafer.current_stage = WaferStatus.COMPLETED
+            wafer.updated_at = datetime.utcnow()
+            completed_wafers.append({
+                "wafer_id": wafer.wafer_id,
+                "old_stage": old_stage,
+                "new_stage": "completed"
+            })
+    
+    batch.status = WaferStatus.COMPLETED
+    db.commit()
+    
+    return {
+        "message": f"Completed {len(completed_wafers)} wafers",
+        "wafers": completed_wafers,
+        "batch_status": "completed"
     }
