@@ -37,9 +37,6 @@ export const equipmentService = {
     api.get(`/equipment/${equipmentId}/health`),
   updateUtilization: (equipmentId: string, hours: number) =>
     api.post(`/equipment/${equipmentId}/utilization`, { hours }),
-  getEquipmentMetrics: (equipmentId: string) => 
-    api.get(`/equipment/metrics/${equipmentId}`),
-  getEquipmentReport: () => api.get('/equipment/report'),
 };
 
 // Maintenance

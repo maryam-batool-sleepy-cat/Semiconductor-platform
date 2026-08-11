@@ -6,8 +6,8 @@ from pydantic import BaseModel
 from app.core.database import get_db
 from app.models.maintenance import Maintenance
 from app.models.equipment import Equipment, EquipmentStatus
+from sqlalchemy import func
 import random
-import json
 
 router = APIRouter()
 
@@ -19,18 +19,6 @@ class MaintenanceCreate(BaseModel):
     technician: str
     cost: float = 0.0
 
-class MaintenanceResponse(BaseModel):
-    id: int
-    equipment_id: int
-    maintenance_type: str
-    scheduled_date: datetime
-    completed_date: Optional[datetime]
-    description: str
-    status: str
-    
-    class Config:
-        from_attributes = True
-
 @router.get("/predictions")
 def get_predictive_maintenance(db: Session = Depends(get_db)):
     """Analyze equipment and predict maintenance schedules"""
@@ -38,45 +26,54 @@ def get_predictive_maintenance(db: Session = Depends(get_db)):
     predictions = []
     
     for eq in equipment_list:
-        if eq.operating_hours > 0:
-            # More detailed prediction based on operating hours
-            if eq.operating_hours > 1200:
-                priority = "critical"
-                days_until = 0
-                recommended_action = "Schedule maintenance immediately - CRITICAL"
-                color = "#ff1744"
-            elif eq.operating_hours > 800:
-                priority = "high"
-                days_until = max(0, 30 - ((eq.operating_hours - 800) / 15))
-                recommended_action = "Schedule maintenance within 48 hours"
-                color = "#ff9100"
-            elif eq.operating_hours > 500:
-                priority = "medium"
-                days_until = max(0, 60 - ((eq.operating_hours - 500) / 10))
-                recommended_action = "Plan maintenance in next 2 weeks"
-                color = "#ffea00"
-            else:
-                priority = "low"
-                days_until = max(0, 90 - ((eq.operating_hours - 200) / 5))
-                recommended_action = "Monitor - no immediate action needed"
-                color = "#00e676"
-            
-            predictions.append({
-                "equipment_id": eq.equipment_id,
-                "name": eq.name,
-                "type": eq.type.value,
-                "current_operating_hours": round(eq.operating_hours, 2),
-                "threshold": 800,
-                "priority": priority,
-                "priority_color": color,
-                "days_until_maintenance": round(days_until),
-                "recommended_action": recommended_action,
-                "temperature": eq.temperature or 0,
-                "vibration": eq.vibration or 0,
-                "status": eq.status.value,
-                "health_score": max(0, 100 - (eq.operating_hours / 20))
-            })
+        # Use real operating hours from database
+        hours = eq.operating_hours or 0
+        
+        # Determine priority based on operating hours
+        if hours > 1200:
+            priority = "critical"
+            days_until = 0
+            recommended_action = "🔴 CRITICAL: Immediate maintenance required!"
+            color = "#ff1744"
+            health_score = max(0, 100 - (hours / 20))
+        elif hours > 800:
+            priority = "high"
+            days_until = max(0, 30 - ((hours - 800) / 15))
+            recommended_action = "🟠 HIGH: Schedule maintenance within 48 hours"
+            color = "#ff9100"
+            health_score = max(0, 100 - (hours / 25))
+        elif hours > 500:
+            priority = "medium"
+            days_until = max(0, 60 - ((hours - 500) / 10))
+            recommended_action = "🟡 MEDIUM: Plan maintenance in next 2 weeks"
+            color = "#ffea00"
+            health_score = max(0, 100 - (hours / 30))
+        else:
+            priority = "low"
+            days_until = max(0, 90 - ((hours - 200) / 5))
+            recommended_action = "🟢 LOW: Monitor - no immediate action needed"
+            color = "#00e676"
+            health_score = max(0, 100 - (hours / 35))
+        
+        predictions.append({
+            "equipment_id": eq.equipment_id,
+            "name": eq.name or "Unknown",
+            "type": eq.type.value if eq.type else "unknown",
+            "current_operating_hours": round(hours, 2),
+            "threshold": 800,
+            "priority": priority,
+            "priority_color": color,
+            "days_until_maintenance": round(days_until) if days_until > 0 else 0,
+            "recommended_action": recommended_action,
+            "temperature": eq.temperature or 0,
+            "vibration": eq.vibration or 0,
+            "status": eq.status.value if eq.status else "unknown",
+            "health_score": round(health_score, 2),
+            "model": eq.model or "N/A",
+            "manufacturer": eq.manufacturer or "N/A"
+        })
     
+    # Return data even if no predictions (will show empty state with message)
     return {
         "predictions": predictions,
         "total_predictions": len(predictions),
@@ -89,7 +86,6 @@ def get_predictive_maintenance(db: Session = Depends(get_db)):
 @router.get("/alerts")
 def get_maintenance_alerts(db: Session = Depends(get_db)):
     """Get active maintenance alerts"""
-    # Get equipment that needs immediate attention
     critical_equipment = db.query(Equipment).filter(
         Equipment.operating_hours > 1200,
         Equipment.status != EquipmentStatus.MAINTENANCE
@@ -108,7 +104,7 @@ def get_maintenance_alerts(db: Session = Depends(get_db)):
             "equipment_id": eq.equipment_id,
             "name": eq.name,
             "severity": "critical",
-            "message": f"⚠️ CRITICAL: {eq.name} has exceeded 1200 operating hours. Immediate maintenance required!",
+            "message": f"⚠️ CRITICAL: {eq.name} has exceeded 1200 operating hours ({round(eq.operating_hours, 2)} hrs). Immediate maintenance required!",
             "timestamp": datetime.utcnow().isoformat(),
             "operating_hours": round(eq.operating_hours, 2)
         })
@@ -118,7 +114,7 @@ def get_maintenance_alerts(db: Session = Depends(get_db)):
             "equipment_id": eq.equipment_id,
             "name": eq.name,
             "severity": "high",
-            "message": f"⚡ HIGH: {eq.name} has exceeded 800 operating hours. Schedule maintenance soon.",
+            "message": f"⚡ HIGH: {eq.name} has exceeded 800 operating hours ({round(eq.operating_hours, 2)} hrs). Schedule maintenance soon.",
             "timestamp": datetime.utcnow().isoformat(),
             "operating_hours": round(eq.operating_hours, 2)
         })
@@ -127,7 +123,6 @@ def get_maintenance_alerts(db: Session = Depends(get_db)):
 
 @router.post("/schedule")
 def schedule_maintenance(maintenance: MaintenanceCreate, db: Session = Depends(get_db)):
-    """Schedule maintenance for equipment"""
     equipment = db.query(Equipment).filter(Equipment.id == maintenance.equipment_id).first()
     if not equipment:
         raise HTTPException(status_code=404, detail="Equipment not found")
@@ -152,7 +147,6 @@ def get_maintenance_history(
     equipment_id: Optional[int] = None,
     db: Session = Depends(get_db)
 ):
-    """Get maintenance history"""
     query = db.query(Maintenance)
     if equipment_id:
         query = query.filter(Maintenance.equipment_id == equipment_id)
@@ -160,7 +154,6 @@ def get_maintenance_history(
 
 @router.post("/complete/{maintenance_id}")
 def complete_maintenance(maintenance_id: int, db: Session = Depends(get_db)):
-    """Mark maintenance as completed"""
     maintenance = db.query(Maintenance).filter(Maintenance.id == maintenance_id).first()
     if not maintenance:
         raise HTTPException(status_code=404, detail="Maintenance not found")
@@ -168,7 +161,6 @@ def complete_maintenance(maintenance_id: int, db: Session = Depends(get_db)):
     maintenance.status = "completed"
     maintenance.completed_date = datetime.utcnow()
     
-    # Update equipment status
     equipment = db.query(Equipment).filter(Equipment.id == maintenance.equipment_id).first()
     if equipment:
         equipment.status = EquipmentStatus.OPERATIONAL
@@ -181,25 +173,20 @@ def complete_maintenance(maintenance_id: int, db: Session = Depends(get_db)):
 
 @router.get("/executive-report")
 def get_executive_maintenance_report(db: Session = Depends(get_db)):
-    """Generate executive maintenance report"""
     total_equipment = db.query(Equipment).count()
     operational = db.query(Equipment).filter(Equipment.status == EquipmentStatus.OPERATIONAL).count()
     maintenance_needed = db.query(Equipment).filter(Equipment.operating_hours > 800).count()
     
-    # Get all maintenance records
     all_maintenance = db.query(Maintenance).all()
     total_maintenance = len(all_maintenance)
     scheduled = sum(1 for m in all_maintenance if m.status == "scheduled")
     completed = sum(1 for m in all_maintenance if m.status == "completed")
     
-    # Calculate average cost
     avg_cost = db.query(func.avg(Maintenance.cost)).scalar() or 0
     
-    # Get recent maintenance (last 30 days)
     thirty_days_ago = datetime.utcnow() - timedelta(days=30)
     recent = db.query(Maintenance).filter(Maintenance.scheduled_date >= thirty_days_ago).count()
     
-    # Get equipment with most maintenance
     equipment_maintenance = db.query(
         Maintenance.equipment_id,
         func.count(Maintenance.id).label('count')
@@ -232,6 +219,3 @@ def get_executive_maintenance_report(db: Session = Depends(get_db)):
             "low": db.query(Equipment).filter(Equipment.operating_hours <= 500).count(),
         }
     }
-
-# Add missing import for func
-from sqlalchemy import func
