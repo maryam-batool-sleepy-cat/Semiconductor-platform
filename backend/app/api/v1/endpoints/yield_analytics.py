@@ -37,7 +37,6 @@ def get_yield_trends(
     days: int = Query(30, description="Number of days to analyze"),
     db: Session = Depends(get_db)
 ):
-    """Produce trend analysis for yield analytics"""
     cutoff_date = datetime.utcnow() - timedelta(days=days)
     
     yield_data = db.query(YieldData).filter(
@@ -62,7 +61,6 @@ def get_yield_trends(
     avg_defects = sum(d.defect_count for d in yield_data) / len(yield_data)
     avg_quality = sum(d.quality_score for d in yield_data) / len(yield_data)
     
-    # Calculate trend direction
     recent = yield_data[-10:] if len(yield_data) > 10 else yield_data
     older = yield_data[:10] if len(yield_data) > 10 else yield_data
     recent_avg = sum(d.yield_percentage for d in recent) / len(recent) if recent else 0
@@ -78,7 +76,6 @@ def get_yield_trends(
         trend_direction = "stable"
         improvement_rate = 0
     
-    # Consistency score (how consistent the yield is)
     std_dev = 0
     if len(yield_data) > 1:
         mean = total_yield
@@ -86,10 +83,8 @@ def get_yield_trends(
         std_dev = variance ** 0.5
     consistency_score = max(0, 100 - (std_dev * 10))
     
-    # Projected yield (simple projection)
     projected_yield = min(100, total_yield + (improvement_rate * 0.5))
     
-    # Defect rate by stage
     stage_defects = {}
     for data in yield_data:
         if data.process_stage not in stage_defects:
@@ -121,7 +116,6 @@ def get_yield_trends(
 
 @router.get("/quality/report")
 def get_quality_report(db: Session = Depends(get_db)):
-    """Generate quality reports - ISO 9001 compliant"""
     total_wafers = db.query(Wafer).count()
     
     recent_yield = db.query(YieldData).order_by(
@@ -137,7 +131,6 @@ def get_quality_report(db: Session = Depends(get_db)):
         Wafer.batch_id
     ).all()
     
-    # Calculate quality metrics for ISO 9001
     if recent_yield:
         overall_yield = round(sum(d.yield_percentage for d in recent_yield) / len(recent_yield), 2)
         quality_score = round(sum(d.quality_score for d in recent_yield) / len(recent_yield), 2)
@@ -147,10 +140,8 @@ def get_quality_report(db: Session = Depends(get_db)):
         quality_score = 0
         avg_defects = 0
     
-    # Production efficiency (ISA-95 Level 3)
     production_efficiency = round((overall_yield / 100) * 100, 2) if overall_yield > 0 else 0
     
-    # Process variation (SEMI E10)
     yields = [d.yield_percentage for d in recent_yield]
     if yields:
         variation = round(max(yields) - min(yields), 2)
@@ -161,7 +152,6 @@ def get_quality_report(db: Session = Depends(get_db)):
         std_dev = 0
         process_capability = 0
     
-    # Manufacturing Intelligence (generate insights)
     insights = []
     if overall_yield > 90:
         insights.append("✅ Excellent overall yield. Manufacturing process is performing well.")
@@ -194,7 +184,7 @@ def get_quality_report(db: Session = Depends(get_db)):
             "range": variation,
             "std_deviation": std_dev,
             "process_capability": process_capability,
-            "status": "stable" if variation < 5 else "variable" if variation < 10 else "unstable"
+            "status": "stable" if variation < 5 else "variable" if variation < 10 else "variable"
         },
         "batch_performance": [
             {
@@ -224,35 +214,59 @@ def get_quality_report(db: Session = Depends(get_db)):
 @router.get("/process-variation")
 def get_process_variation(db: Session = Depends(get_db)):
     """Analyse process variation (SEMI E10)"""
-    yield_data = db.query(YieldData).order_by(
-        YieldData.inspection_date.desc()
-    ).limit(100).all()
-    
-    if not yield_data:
+    try:
+        yield_data = db.query(YieldData).order_by(
+            YieldData.inspection_date.desc()
+        ).limit(100).all()
+        
+        if not yield_data:
+            return {
+                "message": "No data available",
+                "variation": 0,
+                "status": "no_data",
+                "overall_range": 0,
+                "overall_avg": 0,
+                "stage_variation": {},
+                "total_samples": 0
+            }
+        
+        yields = [d.yield_percentage for d in yield_data]
+        stages = list(set(d.process_stage for d in yield_data))
+        
+        stage_variation = {}
+        for stage in stages:
+            stage_yields = [d.yield_percentage for d in yield_data if d.process_stage == stage]
+            if stage_yields:
+                stage_variation[stage] = {
+                    "min": round(min(stage_yields), 2),
+                    "max": round(max(stage_yields), 2),
+                    "range": round(max(stage_yields) - min(stage_yields), 2),
+                    "avg": round(sum(stage_yields) / len(stage_yields), 2)
+                }
+        
+        # Calculate the range
+        overall_range = round(max(yields) - min(yields), 2) if yields else 0
+        
+        # Determine status based on range
+        if overall_range < 5:
+            status = "stable"
+        elif overall_range < 15:
+            status = "variable"
+        else:
+            status = "variable"  # Changed from "unstable" to "variable"
+        
         return {
-            "message": "No data available",
-            "variation": 0,
+            "overall_range": overall_range,
+            "overall_avg": round(sum(yields) / len(yields), 2) if yields else 0,
+            "stage_variation": stage_variation,
+            "status": status,
+            "total_samples": len(yields)
+        }
+    except Exception as e:
+        return {
+            "error": str(e),
+            "message": "Error fetching process variation data",
+            "stage_variation": {},
+            "total_samples": 0,
             "status": "no_data"
         }
-    
-    yields = [d.yield_percentage for d in yield_data]
-    stages = list(set(d.process_stage for d in yield_data))
-    
-    stage_variation = {}
-    for stage in stages:
-        stage_yields = [d.yield_percentage for d in yield_data if d.process_stage == stage]
-        if stage_yields:
-            stage_variation[stage] = {
-                "min": round(min(stage_yields), 2),
-                "max": round(max(stage_yields), 2),
-                "range": round(max(stage_yields) - min(stage_yields), 2),
-                "avg": round(sum(stage_yields) / len(stage_yields), 2)
-            }
-    
-    return {
-        "overall_range": round(max(yields) - min(yields), 2),
-        "overall_avg": round(sum(yields) / len(yields), 2),
-        "stage_variation": stage_variation,
-        "status": "stable" if (max(yields) - min(yields)) < 5 else "variable" if (max(yields) - min(yields)) < 10 else "unstable",
-        "total_samples": len(yields)
-    }
