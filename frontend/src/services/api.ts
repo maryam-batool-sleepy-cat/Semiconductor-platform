@@ -57,6 +57,7 @@ export const yieldService = {
   recordYield: (data: any) => api.post('/yield', data),
   getTrends: (days?: number) => api.get('/yield/analytics/trends', { params: { days } }),
   getQualityReport: () => api.get('/yield/quality/report'),
+  getProcessVariation: () => api.get('/yield/process-variation'),
 };
 
 export default api;
