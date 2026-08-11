@@ -22,6 +22,9 @@ export const waferService = {
   getBatchHistory: (batchId: number) => api.get(`/wafers/batches/${batchId}/history`),
   updateWaferStage: (waferId: string, stage: string) => 
     api.patch(`/wafers/wafers/${waferId}/stage`, { stage }),
+  getWafer: (waferId: string) => api.get(`/wafers/wafers/${waferId}`),
+  getActiveWafers: () => api.get('/wafers/active'),
+  getProductionProgress: () => api.get('/wafers/progress'),
 };
 
 // Equipment

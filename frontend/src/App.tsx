@@ -7,6 +7,7 @@ import EmployeeLogin from './components/EmployeeLogin';
 import AdminLogin from './components/AdminLogin';
 import Dashboard from './components/Dashboard';
 import WaferProduction from './components/WaferProduction';
+import WaferLifecycle from './components/WaferLifecycle';
 import EquipmentHealth from './components/EquipmentHealth';
 import YieldAnalytics from './components/YieldAnalytics';
 import Maintenance from './components/Maintenance';
@@ -70,43 +71,31 @@ function App() {
       <CssBaseline />
       <Router>
         <Routes>
-          {/* Public Routes */}
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<EmployeeLogin />} />
           <Route path="/admin-login" element={<AdminLogin />} />
           
-          {/* Employee Routes */}
           <Route path="/dashboard" element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
+            <ProtectedRoute><Dashboard /></ProtectedRoute>
           } />
           <Route path="/wafer-production" element={
-            <ProtectedRoute>
-              <WaferProduction />
-            </ProtectedRoute>
+            <ProtectedRoute><WaferProduction /></ProtectedRoute>
+          } />
+          <Route path="/wafer-lifecycle" element={
+            <ProtectedRoute><WaferLifecycle /></ProtectedRoute>
           } />
           <Route path="/equipment-health" element={
-            <ProtectedRoute>
-              <EquipmentHealth />
-            </ProtectedRoute>
+            <ProtectedRoute><EquipmentHealth /></ProtectedRoute>
           } />
           <Route path="/yield-analytics" element={
-            <ProtectedRoute>
-              <YieldAnalytics />
-            </ProtectedRoute>
+            <ProtectedRoute><YieldAnalytics /></ProtectedRoute>
           } />
           <Route path="/maintenance" element={
-            <ProtectedRoute>
-              <Maintenance />
-            </ProtectedRoute>
+            <ProtectedRoute><Maintenance /></ProtectedRoute>
           } />
           
-          {/* Admin Routes */}
           <Route path="/admin-dashboard" element={
-            <AdminRoute>
-              <AdminDashboard />
-            </AdminRoute>
+            <AdminRoute><AdminDashboard /></AdminRoute>
           } />
         </Routes>
       </Router>

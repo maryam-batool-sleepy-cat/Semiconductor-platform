@@ -20,6 +20,7 @@ import {
   Speed,
   Assessment,
   Warning,
+  Timeline,
 } from '@mui/icons-material';
 
 interface NavigationProps {
@@ -34,7 +35,6 @@ const Navigation: React.FC<NavigationProps> = ({ isLoggedIn, setIsLoggedIn }) =>
   const [sessionTimeout, setSessionTimeout] = useState(false);
   const isAdmin = localStorage.getItem('isAdmin') === 'true';
 
-  // Session timeout check (30 minutes)
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (isLoggedIn) {
@@ -47,11 +47,12 @@ const Navigation: React.FC<NavigationProps> = ({ isLoggedIn, setIsLoggedIn }) =>
   }, [isLoggedIn]);
 
   const navItems = [
-    { label: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
+    { label: 'Dashboard', icon: <DashboardIcon />, path: '/' },
     { label: 'Wafer Production', icon: <Factory />, path: '/wafer-production' },
     { label: 'Equipment Health', icon: <Speed />, path: '/equipment-health' },
     { label: 'Yield Analytics', icon: <Assessment />, path: '/yield-analytics' },
     { label: 'Maintenance', icon: <Warning />, path: '/maintenance' },
+    { label: 'Wafer Lifecycle', icon: <Timeline />, path: '/wafer-lifecycle' },
   ];
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -88,12 +89,12 @@ const Navigation: React.FC<NavigationProps> = ({ isLoggedIn, setIsLoggedIn }) =>
               cursor: 'pointer',
               fontWeight: 'bold',
             }}
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate('/')}
           >
             🏭 NanoChip Manufacturing
           </Typography>
 
-          <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 1, mr: 2 }}>
+          <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 0.5, mr: 1 }}>
             {navItems.map((item) => (
               <Button
                 key={item.path}
@@ -103,17 +104,18 @@ const Navigation: React.FC<NavigationProps> = ({ isLoggedIn, setIsLoggedIn }) =>
                   backgroundColor: location.pathname === item.path ? 'rgba(0,255,136,0.1)' : 'transparent',
                   '&:hover': { backgroundColor: 'rgba(0,255,136,0.05)' },
                   textTransform: 'none',
-                  fontSize: '13px',
+                  fontSize: '12px',
                   fontWeight: location.pathname === item.path ? 600 : 400,
+                  px: 1.5,
+                  py: 0.5,
                 }}
               >
                 {item.icon}
-                <Typography sx={{ ml: 1 }}>{item.label}</Typography>
+                <Typography sx={{ ml: 0.5, fontSize: '11px' }}>{item.label}</Typography>
               </Button>
             ))}
           </Box>
 
-          {/* Show Admin button only if user is admin */}
           {isAdmin && (
             <Button
               onClick={() => navigate('/admin-dashboard')}
@@ -121,13 +123,12 @@ const Navigation: React.FC<NavigationProps> = ({ isLoggedIn, setIsLoggedIn }) =>
                 color: '#00ff88',
                 borderColor: '#00ff88',
                 mr: 1,
-                '&:hover': {
-                  backgroundColor: 'rgba(0,255,136,0.05)',
-                },
+                '&:hover': { backgroundColor: 'rgba(0,255,136,0.05)' },
+                fontSize: '11px',
               }}
             >
-              <AdminIcon sx={{ mr: 0.5 }} />
-              Admin Panel
+              <AdminIcon sx={{ mr: 0.5, fontSize: 16 }} />
+              Admin
             </Button>
           )}
 
@@ -142,7 +143,7 @@ const Navigation: React.FC<NavigationProps> = ({ isLoggedIn, setIsLoggedIn }) =>
               py: 1,
             }}
           >
-            <Typography variant="body2" sx={{ color: '#ffffff', fontWeight: 500 }}>
+            <Typography variant="body2" sx={{ color: '#ffffff', fontWeight: 500, fontSize: '12px' }}>
               {localStorage.getItem('username') || 'User'}
             </Typography>
           </IconButton>
@@ -169,7 +170,6 @@ const Navigation: React.FC<NavigationProps> = ({ isLoggedIn, setIsLoggedIn }) =>
         </Toolbar>
       </AppBar>
 
-      {/* Session Timeout Alert */}
       <Snackbar
         open={sessionTimeout}
         autoHideDuration={6000}
