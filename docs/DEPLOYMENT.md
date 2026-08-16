@@ -3,14 +3,7 @@
 ## Docker Compose
 ```bash
 sudo docker-compose up -d
-```
-
-## Kubernetes
-```bash
-kubectl create namespace semiconductor
-
-kubectl apply -f k8s/ -n semiconductor
-(UNDER CONSTRUCTION) 
+ 
 ```
 ## Terraform (AWS)
 ```bash
