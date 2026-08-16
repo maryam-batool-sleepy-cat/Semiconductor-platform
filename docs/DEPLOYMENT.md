@@ -6,6 +6,7 @@ sudo docker-compose up -d
 ## Kubernetes
 kubectl create namespace semiconductor
 kubectl apply -f k8s/ -n semiconductor
+(UNDER CONSTRUCTION) 
 
 ## Terraform (AWS)
 cd terraform
