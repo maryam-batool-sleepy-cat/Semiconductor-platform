@@ -12,14 +12,6 @@ terraform init
 terraform apply -auto-approve
 ```
 
-## Environment Variables
-```bash
-Create backend/.env:
-DATABASE_URL=postgresql://postgres:password@postgres:5432/semiconductor
-REDIS_URL=redis://redis:6379
-SECRET_KEY=your-secret-key
-```
-
 ## Health Checks
 ```bash
 curl http://localhost:8000/health
