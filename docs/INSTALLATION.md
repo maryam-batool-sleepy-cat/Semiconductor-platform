@@ -129,18 +129,49 @@ bash StartPlatform
 ## Step 5: Verify Installation
 
 Service	Check
-API	curl http://localhost:8000/health
-Frontend	Open http://localhost:5173
-Database	sudo docker exec -it semiconductor-postgres psql -U postgres -d semiconductor -c "\dt"
+API	
+```bash
+curl http://localhost:8000/health
+```
 
+Frontend	Open http://localhost:5173
+
+Database:	
+
+```bash
+#Simple Table
+sudo docker exec -it semiconductor-postgres psql -U postgres -d semiconductor -c "\dt"
+
+#To enter the database
+sudo docker exec -it semiconductor-postgres psql -U postgres -d semiconductor
+
+#View table
+\dt
+
+#To view data in tables
+SELECT * FROM equipment;
+SELECT * FROM wafer_batches;
+SELECT * FROM wafers;
+SELECT * FROM yield_data;
+SELECT * FROM maintenance;
+
+#to move q to move on
+
+#to leave the database
+\q
+
+```
 ## Step 6: Login
+
 Role - Username - Password
+
 Employee - employee - employee123
+
 Admin - admin - admin123
 
 ## Step 7: How To Stop
-# When you want to stop the platform You first cut off the frontend by ctrl c
-# For the backend you run the other file we made
+### When you want to stop the platform You first cut off the frontend by ctrl c
+### For the backend you run the other file we made
 ```bash
 bash stopplatform
 
