@@ -11,11 +11,11 @@ Enterprise platform for monitoring semiconductor fabrication. (Built on feodra w
 - Admin Dashboard
 
 ## Tech Stack
-- Backend: FastAPI, Python
-- Frontend: React, TypeScript, Vite
-- Database: PostgreSQL, Redis
-- Container: Docker
-- Monitoring: Prometheus, Grafana
+- Backend: FastAPI, and Python
+- Frontend: React, TypeScript, and Vite
+- Database: PostgreSQL, and Redis
+- Containers: Docker, and Kuberentes
+- Monitoring: Prometheus, and Grafana
 
 ## Quick Start
 ```bash
