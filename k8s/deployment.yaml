@@ -62,12 +62,14 @@ spec:
       containers:
       - name: api
         image: semiconductor-api:latest
-        imagePullPolicy: Never
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8000
         env:
         - name: DATABASE_URL
           value: "postgresql://postgres:password@postgres:5432/semiconductor"
+        - name: PYTHONUNBUFFERED
+          value: "1"
 ---
 apiVersion: v1
 kind: Service
@@ -99,7 +101,7 @@ spec:
       containers:
       - name: frontend
         image: semiconductor-frontend:latest
-        imagePullPolicy: Never
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 80
 ---
@@ -115,3 +117,29 @@ spec:
   - port: 80
     targetPort: 80
   type: NodePort
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: simulator
+  namespace: semiconductor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: simulator
+  template:
+    metadata:
+      labels:
+        app: simulator
+    spec:
+      containers:
+      - name: simulator
+        image: semiconductor-simulator:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: API_BASE_URL
+          value: "http://10.103.234.164:8000/api/v1"
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        command: ["python3", "-u", "/app/data-simulator/simulate.py"]

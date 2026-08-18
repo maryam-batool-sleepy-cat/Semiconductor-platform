@@ -17,7 +17,14 @@ logger = logging.getLogger(__name__)
 
 class SemiconductorSimulator:
     def __init__(self):
-        self.base_url = "http://localhost:8000/api/v1"
+        # Try multiple API endpoints
+        self.api_urls = [
+            os.environ.get('API_URL', 'http://api:8000'),
+            'http://localhost:8000',
+            'http://127.0.0.1:8000'
+        ]
+        self.api_url = self.find_working_api()
+        self.base_url = f"{self.api_url}/api/v1" if self.api_url else None
         self.batch_counter = random.randint(1000, 9999)
         self.running = True
         self.equipment_data = [
@@ -30,18 +37,32 @@ class SemiconductorSimulator:
             {"equipment_id": "INSP-001", "name": "KLA-Tencor 2900", "type": "inspection", "model": "2900", "manufacturer": "KLA-Tencor"},
             {"equipment_id": "INSP-002", "name": "KLA-Tencor 2950", "type": "inspection", "model": "2950", "manufacturer": "KLA-Tencor"}
         ]
-        
+    
+    def find_working_api(self):
+        for url in self.api_urls:
+            try:
+                response = requests.get(f"{url}/health", timeout=2)
+                if response.status_code == 200:
+                    logger.info(f"✅ Found working API at: {url}")
+                    return url
+            except:
+                continue
+        logger.error("❌ No working API found")
+        return None
+    
     def wait_for_api(self):
         logger.info("Waiting for API to be ready...")
         for i in range(30):
-            try:
-                # FIXED: Use /health not /api/health
-                response = requests.get("http://localhost:8000/health", timeout=3)
-                if response.status_code == 200:
-                    logger.info("API is ready!")
-                    return True
-            except Exception as e:
-                logger.debug(f"Attempt {i+1}: {e}")
+            for url in self.api_urls:
+                try:
+                    response = requests.get(f"{url}/health", timeout=2)
+                    if response.status_code == 200:
+                        self.api_url = url
+                        self.base_url = f"{url}/api/v1"
+                        logger.info(f"API is ready at: {url}")
+                        return True
+                except:
+                    pass
             time.sleep(2)
         logger.error("API not ready after 30 attempts")
         return False
@@ -161,11 +182,9 @@ class SemiconductorSimulator:
         
         self.register_equipment()
         
-        # Start monitoring thread
         monitor_thread = threading.Thread(target=self.simulate_equipment_monitoring, daemon=True)
         monitor_thread.start()
         
-        # Main production loop
         try:
             while self.running:
                 batch = self.create_batch()
