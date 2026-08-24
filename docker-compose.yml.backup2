@@ -108,6 +108,7 @@ services:
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
       - GF_SECURITY_ADMIN_USER=admin
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
     volumes:
       - ./monitoring/grafana:/var/lib/grafana
     ports:
@@ -116,6 +117,11 @@ services:
       - prometheus
     user: "472"
     restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  prometheus_data:
 
   keycloak:
     image: quay.io/keycloak/keycloak:22.0.1
@@ -129,8 +135,3 @@ services:
       - ./keycloak/realm.json:/opt/keycloak/data/import/realm.json
     command: start-dev --import-realm
     restart: unless-stopped
-
-volumes:
-  postgres_data:
-  redis_data:
-  prometheus_data:
