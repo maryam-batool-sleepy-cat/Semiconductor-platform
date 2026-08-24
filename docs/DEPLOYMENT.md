@@ -5,6 +5,66 @@
 sudo docker-compose up -d
  
 ```
+## kuberenetes
+#### prerequisites
+Have docker desktop install, minikube, and kubectl installed. (look at the documentation) and having the repo files on your computer. 
+
+start minikube 
+```bash
+minikube start --driver=docker
+#checking if its running
+minikube status
+```
+
+set docker to use minikube
+```bash
+eval $(minikube docker-env)
+```
+
+building the imaiges
+```bash
+cd ~/semiconductor-platform
+docker build -t semiconductor-api:latest ./backend
+docker build -t semiconductor-frontend:latest ./frontend
+docker build -t semiconductor-simulator:latest -f data-simulator/Dockerfile .
+```
+
+applying to deployment
+```bash
+kubectl apply -f k8s/deployment.yaml
+```
+
+checking status
+```bash
+sleep 30
+kubectl get pods -n semiconductor
+kubectl cluster-info
+kubectl get nodes
+```
+
+fowarding port to be able to use it
+```bash
+# API Port Forward
+kubectl port-forward -n semiconductor service/api 8000:8000 &
+
+# Frontend Port Forward
+kubectl port-forward -n semiconductor service/frontend 8080:80 &
+```
+
+checking health for kuberentes
+```bash
+# Test API
+curl http://localhost:8000/health
+
+# Test Frontend
+curl http://localhost:8080
+```
+## ports 
+### main site on http://localhost:8080 
+### API http://localhost:8000
+### API Docs	http://localhost:8000/docs
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ## Terraform (AWS)
 ```bash
 cd terraform
