@@ -65,12 +65,12 @@ curl http://localhost:8000/health
 # Test Frontend
 curl http://localhost:8080
 ```
-## ports 
+ports 
 main site on http://localhost:8080 
 API http://localhost:8000
 API Docs http://localhost:8000/docs
 
-## to stop
+to stop
 to cut the the two port forwarding command
 
 then stop minikube
