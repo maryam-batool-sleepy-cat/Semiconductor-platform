@@ -1,6 +1,6 @@
 # 🏭 Semiconductor Manufacturing Operations Platform
 
-Enterprise platform for monitoring semiconductor fabrication. (Built on feodra workstation 44)
+Enterprise platform for monitoring semiconductor fabrication. (Built on feodra workstation 44 so minor package issue might arise)
 
 ## Features
 - Wafer Production Management
