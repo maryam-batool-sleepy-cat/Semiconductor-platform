@@ -8,6 +8,10 @@ sudo docker-compose up -d
 ## kuberenetes
 #### prerequisites
 Have docker desktop install, minikube, and kubectl installed. (look at the documentation) and having the repo files on your computer. 
+```bash
+#to clone directory
+git clone https://github.com/maryam-batool-cat/Semiconductor-platform.git
+```
 
 start minikube 
 ```bash
@@ -44,6 +48,8 @@ kubectl get nodes
 
 fowarding port to be able to use it
 ```bash
+# PUT ON DIFFRERENT TABS ON THE TERMINAL
+
 # API Port Forward
 kubectl port-forward -n semiconductor service/api 8000:8000 &
 
@@ -60,11 +66,19 @@ curl http://localhost:8000/health
 curl http://localhost:8080
 ```
 ## ports 
-### main site on http://localhost:8080 
-### API http://localhost:8000
-### API Docs	http://localhost:8000/docs
+main site on http://localhost:8080 
+API http://localhost:8000
+API Docs http://localhost:8000/docs
 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## to stop
+to cut the the two port forwarding command
+
+then stop minikube
+```bash
+minikube stop
+```
+
+
 ## Terraform (AWS)
 ```bash
 cd terraform
