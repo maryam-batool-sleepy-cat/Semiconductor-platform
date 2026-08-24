@@ -122,3 +122,16 @@ volumes:
   postgres_data:
   redis_data:
   prometheus_data:
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:22.0.1
+    container_name: semiconductor-keycloak
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./keycloak/realm.json:/opt/keycloak/data/import/realm.json
+    command: start-dev --import-realm
+    restart: unless-stopped

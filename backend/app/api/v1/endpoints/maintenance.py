@@ -6,8 +6,9 @@ from pydantic import BaseModel
 from app.core.database import get_db
 from app.models.maintenance import Maintenance
 from app.models.equipment import Equipment, EquipmentStatus
+from app.services.ml_model import predictor
+from app.services.predictive_maintenance import maintenance_service
 from sqlalchemy import func
-import random
 
 router = APIRouter()
 
@@ -21,103 +22,59 @@ class MaintenanceCreate(BaseModel):
 
 @router.get("/predictions")
 def get_predictive_maintenance(db: Session = Depends(get_db)):
-    """Analyze equipment and predict maintenance schedules"""
+    """Get ML-based maintenance predictions"""
     equipment_list = db.query(Equipment).all()
+    maintenance_records = db.query(Maintenance).all()
+    
+    # Train ML model if we have enough data
+    if len(equipment_list) > 5:
+        training_data = []
+        for eq in equipment_list:
+            # Get maintenance count for this equipment
+            maint_count = sum(1 for m in maintenance_records if m.equipment_id == eq.id)
+            training_data.append({
+                'operating_hours': eq.operating_hours or 0,
+                'temperature': eq.temperature or 25,
+                'vibration': eq.vibration or 0.5,
+                'age_days': 30,  # default
+                'maintenance_count': maint_count,
+                'failed': 1 if eq.operating_hours > 1200 else 0
+            })
+        predictor.train(training_data)
+    
     predictions = []
-    
     for eq in equipment_list:
-        # Use real operating hours from database
-        hours = eq.operating_hours or 0
-        
-        # Determine priority based on operating hours
-        if hours > 1200:
-            priority = "critical"
-            days_until = 0
-            recommended_action = "🔴 CRITICAL: Immediate maintenance required!"
-            color = "#ff1744"
-            health_score = max(0, 100 - (hours / 20))
-        elif hours > 800:
-            priority = "high"
-            days_until = max(0, 30 - ((hours - 800) / 15))
-            recommended_action = "🟠 HIGH: Schedule maintenance within 48 hours"
-            color = "#ff9100"
-            health_score = max(0, 100 - (hours / 25))
-        elif hours > 500:
-            priority = "medium"
-            days_until = max(0, 60 - ((hours - 500) / 10))
-            recommended_action = "🟡 MEDIUM: Plan maintenance in next 2 weeks"
-            color = "#ffea00"
-            health_score = max(0, 100 - (hours / 30))
-        else:
-            priority = "low"
-            days_until = max(0, 90 - ((hours - 200) / 5))
-            recommended_action = "🟢 LOW: Monitor - no immediate action needed"
-            color = "#00e676"
-            health_score = max(0, 100 - (hours / 35))
-        
-        predictions.append({
-            "equipment_id": eq.equipment_id,
-            "name": eq.name or "Unknown",
-            "type": eq.type.value if eq.type else "unknown",
-            "current_operating_hours": round(hours, 2),
-            "threshold": 800,
-            "priority": priority,
-            "priority_color": color,
-            "days_until_maintenance": round(days_until) if days_until > 0 else 0,
-            "recommended_action": recommended_action,
-            "temperature": eq.temperature or 0,
-            "vibration": eq.vibration or 0,
-            "status": eq.status.value if eq.status else "unknown",
-            "health_score": round(health_score, 2),
-            "model": eq.model or "N/A",
-            "manufacturer": eq.manufacturer or "N/A"
-        })
+        analysis = maintenance_service.analyze_equipment_health(eq)
+        predictions.append(analysis)
     
-    # Return data even if no predictions (will show empty state with message)
     return {
         "predictions": predictions,
         "total_predictions": len(predictions),
-        "critical": sum(1 for p in predictions if p["priority"] == "critical"),
+        "critical": sum(1 for p in predictions if p["priority"] == "urgent"),
         "high": sum(1 for p in predictions if p["priority"] == "high"),
         "medium": sum(1 for p in predictions if p["priority"] == "medium"),
         "low": sum(1 for p in predictions if p["priority"] == "low"),
+        "kpis": maintenance_service.get_maintenance_kpis(equipment_list, maintenance_records)
     }
 
 @router.get("/alerts")
 def get_maintenance_alerts(db: Session = Depends(get_db)):
-    """Get active maintenance alerts"""
-    critical_equipment = db.query(Equipment).filter(
-        Equipment.operating_hours > 1200,
-        Equipment.status != EquipmentStatus.MAINTENANCE
-    ).all()
-    
-    high_priority_equipment = db.query(Equipment).filter(
-        Equipment.operating_hours > 800,
-        Equipment.operating_hours <= 1200,
-        Equipment.status != EquipmentStatus.MAINTENANCE
-    ).all()
-    
+    """Get ML-based maintenance alerts"""
+    equipment_list = db.query(Equipment).all()
     alerts = []
     
-    for eq in critical_equipment:
-        alerts.append({
-            "equipment_id": eq.equipment_id,
-            "name": eq.name,
-            "severity": "critical",
-            "message": f"⚠️ CRITICAL: {eq.name} has exceeded 1200 operating hours ({round(eq.operating_hours, 2)} hrs). Immediate maintenance required!",
-            "timestamp": datetime.utcnow().isoformat(),
-            "operating_hours": round(eq.operating_hours, 2)
-        })
-    
-    for eq in high_priority_equipment:
-        alerts.append({
-            "equipment_id": eq.equipment_id,
-            "name": eq.name,
-            "severity": "high",
-            "message": f"⚡ HIGH: {eq.name} has exceeded 800 operating hours ({round(eq.operating_hours, 2)} hrs). Schedule maintenance soon.",
-            "timestamp": datetime.utcnow().isoformat(),
-            "operating_hours": round(eq.operating_hours, 2)
-        })
+    for eq in equipment_list:
+        analysis = maintenance_service.analyze_equipment_health(eq)
+        if analysis['priority'] in ['urgent', 'high']:
+            alerts.append({
+                "equipment_id": eq.equipment_id,
+                "name": eq.name,
+                "severity": analysis['priority'],
+                "message": f"{analysis['status'].upper()}: {analysis['name']} needs maintenance. Failure probability: {analysis['failure_probability']}%",
+                "timestamp": datetime.utcnow().isoformat(),
+                "health_score": analysis['health_score'],
+                "recommended_action": analysis['recommended_action']
+            })
     
     return {"alerts": alerts, "count": len(alerts)}
 
@@ -187,20 +144,6 @@ def get_executive_maintenance_report(db: Session = Depends(get_db)):
     thirty_days_ago = datetime.utcnow() - timedelta(days=30)
     recent = db.query(Maintenance).filter(Maintenance.scheduled_date >= thirty_days_ago).count()
     
-    equipment_maintenance = db.query(
-        Maintenance.equipment_id,
-        func.count(Maintenance.id).label('count')
-    ).group_by(Maintenance.equipment_id).order_by(func.count(Maintenance.id).desc()).limit(5).all()
-    
-    most_maintained = []
-    for item in equipment_maintenance:
-        eq = db.query(Equipment).filter(Equipment.id == item.equipment_id).first()
-        if eq:
-            most_maintained.append({
-                "name": eq.name,
-                "count": item.count
-            })
-    
     return {
         "total_equipment": total_equipment,
         "operational": operational,
@@ -211,7 +154,6 @@ def get_executive_maintenance_report(db: Session = Depends(get_db)):
         "completed_maintenance": completed,
         "avg_maintenance_cost": round(avg_cost, 2),
         "recent_maintenance_30d": recent,
-        "most_maintained_equipment": most_maintained,
         "equipment_health_status": {
             "critical": db.query(Equipment).filter(Equipment.operating_hours > 1200).count(),
             "high": db.query(Equipment).filter(Equipment.operating_hours > 800, Equipment.operating_hours <= 1200).count(),

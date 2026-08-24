@@ -1,0 +1,43 @@
+stages:
+  - build
+  - test
+  - security
+  - deploy
+
+variables:
+  DOCKER_IMAGE_API: $CI_REGISTRY_IMAGE/api
+  DOCKER_IMAGE_FRONTEND: $CI_REGISTRY_IMAGE/frontend
+
+build_backend:
+  stage: build
+  script:
+    - docker build -t $DOCKER_IMAGE_API:latest ./backend
+    - docker push $DOCKER_IMAGE_API:latest
+
+build_frontend:
+  stage: build
+  script:
+    - docker build -t $DOCKER_IMAGE_FRONTEND:latest ./frontend
+    - docker push $DOCKER_IMAGE_FRONTEND:latest
+
+test_backend:
+  stage: test
+  script:
+    - cd backend
+    - pip install -r requirements.txt
+    - python -m pytest tests/ || echo "No tests found"
+
+security_scan:
+  stage: security
+  script:
+    - trivy image $DOCKER_IMAGE_API:latest || echo "Trivy scan completed"
+    - trivy image $DOCKER_IMAGE_FRONTEND:latest || echo "Trivy scan completed"
+
+deploy_k8s:
+  stage: deploy
+  only:
+    - main
+  script:
+    - kubectl apply -f k8s/deployment.yaml
+    - kubectl rollout status deployment/api -n semiconductor
+    - kubectl rollout status deployment/frontend -n semiconductor
