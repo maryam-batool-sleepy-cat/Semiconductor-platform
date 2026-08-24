@@ -13,11 +13,15 @@ class PredictiveMaintenanceService:
     
     def analyze_equipment_health(self, equipment):
         """Analyze health metrics and predict failure using ML"""
-        # Get ML prediction
-        failure_probability = predictor.predict_failure(equipment)
+        try:
+            # Get ML prediction
+            failure_probability = predictor.predict_failure(equipment)
+        except Exception as e:
+            logger.warning(f"ML prediction failed: {e}")
+            failure_probability = 0.5
         
         # Calculate health score
-        health_score = 100 - failure_probability
+        health_score = 100 - (failure_probability * 100)
         
         # Determine status based on health score
         if health_score < 50:
@@ -40,23 +44,27 @@ class PredictiveMaintenanceService:
             "equipment_id": equipment.equipment_id,
             "name": equipment.name,
             "health_score": round(health_score, 2),
-            "failure_probability": round(failure_probability, 2),
+            "failure_probability": round(failure_probability * 100, 2),
             "status": status,
             "recommended_action": action,
             "priority": priority,
             "days_until_maintenance": days_until,
-            "operating_hours": equipment.operating_hours,
-            "temperature": equipment.temperature,
-            "vibration": equipment.vibration
+            "operating_hours": equipment.operating_hours or 0,
+            "temperature": equipment.temperature or 0,
+            "vibration": equipment.vibration or 0
         }
     
     def generate_maintenance_schedule(self, equipment_list):
         """Generate maintenance schedule based on predictions"""
         schedule = []
         for eq in equipment_list:
-            analysis = self.analyze_equipment_health(eq)
-            if analysis['priority'] in ['urgent', 'high']:
-                schedule.append(analysis)
+            try:
+                analysis = self.analyze_equipment_health(eq)
+                if analysis['priority'] in ['urgent', 'high']:
+                    schedule.append(analysis)
+            except Exception as e:
+                logger.error(f"Error analyzing equipment {eq.equipment_id}: {e}")
+                continue
         return sorted(schedule, key=lambda x: x['health_score'])
     
     def get_maintenance_kpis(self, equipment_list, maintenance_records):

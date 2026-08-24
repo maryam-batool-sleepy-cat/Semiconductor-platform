@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split
 import joblib
 import os
 import logging
@@ -15,18 +14,18 @@ class FailurePredictor:
         self.scaler = StandardScaler()
         self.is_trained = False
         self.model_path = "/app/models/failure_predictor.pkl"
+        self.feature_names = ['operating_hours', 'temperature', 'vibration', 'age_days', 'maintenance_count']
         
     def generate_training_data(self, equipment_list):
         """Generate synthetic training data based on equipment metrics"""
         data = []
         for eq in equipment_list:
-            # Features: operating_hours, temperature, vibration, age_days
             features = {
                 'operating_hours': eq.operating_hours or 0,
                 'temperature': eq.temperature or 25,
                 'vibration': eq.vibration or 0.5,
-                'age_days': (eq.created_at - eq.installation_date).days if eq.installation_date else 30,
-                'maintenance_count': len(eq.maintenance_records) if hasattr(eq, 'maintenance_records') else 0
+                'age_days': 30,
+                'maintenance_count': 0
             }
             # Label: 1 if operating_hours > 1200 or temperature > 80 or vibration > 5
             failed = 1 if (eq.operating_hours > 1200 or (eq.temperature or 0) > 80 or (eq.vibration or 0) > 5) else 0
@@ -37,8 +36,9 @@ class FailurePredictor:
     
     def train(self, equipment_data):
         """Train ML model on equipment data"""
-        if len(equipment_data) < 5:
-            logger.warning("Not enough data to train model")
+        if len(equipment_data) < 3:
+            logger.warning("Not enough data to train model, using fallback")
+            self.is_trained = False
             return False
         
         df = pd.DataFrame(equipment_data)
@@ -47,11 +47,17 @@ class FailurePredictor:
         X = df[feature_cols].fillna(0)
         y = df['failed']
         
+        # Check if we have both classes
+        if len(set(y)) < 2:
+            logger.warning("Only one class present in training data, using fallback")
+            self.is_trained = False
+            return False
+        
         X_scaled = self.scaler.fit_transform(X)
         
         self.model = RandomForestClassifier(
-            n_estimators=100,
-            max_depth=10,
+            n_estimators=50,
+            max_depth=5,
             random_state=42
         )
         self.model.fit(X_scaled, y)
@@ -69,22 +75,30 @@ class FailurePredictor:
     
     def predict_failure(self, equipment):
         """Predict failure probability for a single equipment"""
-        if not self.is_trained:
-            logger.warning("Model not trained, using fallback rules")
+        if not self.is_trained or self.model is None:
+            logger.debug("Model not trained, using fallback prediction")
             return self._fallback_prediction(equipment)
         
-        features = np.array([[
-            equipment.operating_hours or 0,
-            equipment.temperature or 25,
-            equipment.vibration or 0.5,
-            30,  # default age
-            0   # default maintenance count
-        ]])
-        
-        scaled_features = self.scaler.transform(features)
-        probability = self.model.predict_proba(scaled_features)[0][1]
-        
-        return round(probability * 100, 2)
+        try:
+            features = np.array([[
+                equipment.operating_hours or 0,
+                equipment.temperature or 25,
+                equipment.vibration or 0.5,
+                30,
+                0
+            ]])
+            
+            scaled_features = self.scaler.transform(features)
+            probabilities = self.model.predict_proba(scaled_features)
+            
+            # Handle case where model only has one class
+            if probabilities.shape[1] == 1:
+                return float(probabilities[0][0])
+            
+            return float(probabilities[0][1])
+        except Exception as e:
+            logger.warning(f"ML prediction failed: {e}, using fallback")
+            return self._fallback_prediction(equipment)
     
     def _fallback_prediction(self, equipment):
         """Rule-based fallback when model isn't trained"""
@@ -110,6 +124,6 @@ class FailurePredictor:
         elif vib > 3:
             score += 10
             
-        return min(score, 99)
+        return min(score, 99) / 100  # Return as probability
 
 predictor = FailurePredictor()
