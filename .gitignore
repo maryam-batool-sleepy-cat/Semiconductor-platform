@@ -62,3 +62,4 @@ coverage/
 *.log
 *.tmp
 *.temp
+monitoring/grafana/
