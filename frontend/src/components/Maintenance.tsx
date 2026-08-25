@@ -26,10 +26,6 @@ import {
   IconButton,
   Tooltip,
   Divider,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
 } from '@mui/material';
 import {
   Warning as WarningIcon,
@@ -70,12 +66,11 @@ const Maintenance: React.FC = () => {
   useEffect(() => {
     fetchData();
     const interval = setInterval(fetchData, 30000);
-    // Check for alerts every 5 minutes
     const alertInterval = setInterval(() => {
       if (alerts && alerts.count > 0) {
         setAlertDialog(true);
       }
-    }, 300000); // 5 minutes
+    }, 300000);
     return () => {
       clearInterval(interval);
       clearInterval(alertInterval);
@@ -106,6 +101,14 @@ const Maintenance: React.FC = () => {
       await maintenanceService.scheduleMaintenance(newMaintenance);
       setSnackbar({ open: true, message: '✅ Maintenance scheduled successfully!', severity: 'success' });
       setOpenDialog(false);
+      setNewMaintenance({
+        equipment_id: 0,
+        maintenance_type: 'Preventive',
+        scheduled_date: '',
+        description: '',
+        technician: '',
+        cost: 0,
+      });
       fetchData();
     } catch (error) {
       setSnackbar({ open: true, message: '❌ Failed to schedule maintenance', severity: 'error' });
@@ -147,7 +150,7 @@ const Maintenance: React.FC = () => {
       <Navigation isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} />
 
       <Container maxWidth="xl" sx={{ py: 4 }}>
-        {/* Page Header */}
+        {/* Page Header with Schedule Button */}
         <Paper sx={{ p: 3, mb: 4, background: 'rgba(255,170,51,0.03)', border: '1px solid rgba(255,170,51,0.05)' }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
             <Box>
@@ -165,6 +168,8 @@ const Maintenance: React.FC = () => {
                 color: '#000000',
                 '&:hover': { bgcolor: '#ff9900' },
                 mt: { xs: 2, sm: 0 },
+                px: 3,
+                py: 1.5,
               }}
             >
               Schedule Maintenance
@@ -193,9 +198,8 @@ const Maintenance: React.FC = () => {
 
         {/* Two Column Layout */}
         <Grid container spacing={3}>
-          {/* Left Column: Predictions & Alerts */}
+          {/* Left Column: Predictions */}
           <Grid item xs={12} md={6}>
-            {/* Predictions Table */}
             <Paper sx={{ p: 3, mb: 3, background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.05)' }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h6" sx={{ color: '#ffaa33' }}>🔮 Maintenance Predictions</Typography>
@@ -206,9 +210,9 @@ const Maintenance: React.FC = () => {
                   <TableHead>
                     <TableRow>
                       <TableCell sx={{ color: '#888' }}>Equipment</TableCell>
-                      <TableCell sx={{ color: '#888' }}>Hours</TableCell>
+                      <TableCell sx={{ color: '#888' }}>Health Score</TableCell>
+                      <TableCell sx={{ color: '#888' }}>Failure %</TableCell>
                       <TableCell sx={{ color: '#888' }}>Priority</TableCell>
-                      <TableCell sx={{ color: '#888' }}>Days</TableCell>
                       <TableCell sx={{ color: '#888' }}>Action</TableCell>
                     </TableRow>
                   </TableHead>
@@ -219,26 +223,50 @@ const Maintenance: React.FC = () => {
                       predictions.predictions?.slice(0, 5).map((p: any, index: number) => (
                         <TableRow key={index}>
                           <TableCell sx={{ color: '#fff' }}>{p.name}</TableCell>
-                          <TableCell sx={{ color: '#aaa' }}>{p.current_operating_hours}</TableCell>
+                          <TableCell>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <LinearProgress 
+                                variant="determinate" 
+                                value={p.health_score || 0} 
+                                sx={{ 
+                                  width: 60, 
+                                  height: 6, 
+                                  borderRadius: 3,
+                                  bgcolor: 'rgba(255,255,255,0.1)',
+                                  '& .MuiLinearProgress-bar': { 
+                                    bgcolor: (p.health_score || 0) > 70 ? '#00ff88' : (p.health_score || 0) > 50 ? '#ffaa33' : '#ff6b6b',
+                                    borderRadius: 3,
+                                  }
+                                }} 
+                              />
+                              <Typography variant="caption" sx={{ color: (p.health_score || 0) > 70 ? '#00ff88' : '#ffaa33' }}>
+                                {p.health_score || 0}%
+                              </Typography>
+                            </Box>
+                          </TableCell>
+                          <TableCell>
+                            <Typography sx={{ color: (p.failure_probability || 0) < 30 ? '#00ff88' : (p.failure_probability || 0) < 50 ? '#ffaa33' : '#ff6b6b' }}>
+                              {p.failure_probability || 0}%
+                            </Typography>
+                          </TableCell>
                           <TableCell>
                             <Chip 
-                              label={p.priority} 
+                              label={p.priority || 'low'} 
                               size="small" 
                               sx={{ 
-                                bgcolor: p.priority_color + '30',
-                                color: p.priority_color,
+                                bgcolor: p.priority === 'urgent' ? '#ff1744' + '30' : p.priority === 'high' ? '#ff9100' + '30' : '#ffaa33' + '30',
+                                color: p.priority === 'urgent' ? '#ff1744' : p.priority === 'high' ? '#ff9100' : '#ffaa33',
                                 fontWeight: 'bold',
                               }} 
                             />
                           </TableCell>
-                          <TableCell sx={{ color: '#aaa' }}>{p.days_until_maintenance}</TableCell>
                           <TableCell>
                             <Button 
                               size="small" 
                               onClick={() => handleViewPrediction(p)}
                               sx={{ color: '#ffaa33' }}
                             >
-                              View
+                              View Details
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -248,27 +276,21 @@ const Maintenance: React.FC = () => {
                 </Table>
               </TableContainer>
             </Paper>
+          </Grid>
 
-            {/* Active Alerts */}
+          {/* Right Column: Alerts, KPIs, History with Complete Button */}
+          <Grid item xs={12} md={6}>
             {alerts?.alerts?.length > 0 && (
-              <Paper sx={{ p: 3, background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,107,107,0.2)' }}>
+              <Paper sx={{ p: 3, mb: 3, background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,107,107,0.2)' }}>
                 <Typography variant="h6" sx={{ color: '#ff6b6b', mb: 2 }}>🚨 Active Alerts</Typography>
-                {alerts.alerts.map((alert: any, index: number) => (
-                  <Alert 
-                    key={index} 
-                    severity={alert.severity === 'critical' ? 'error' : 'warning'} 
-                    sx={{ mb: 1, bgcolor: 'rgba(255,0,0,0.05)' }}
-                  >
+                {alerts.alerts.slice(0, 3).map((alert: any, index: number) => (
+                  <Alert key={index} severity={alert.severity === 'urgent' ? 'error' : 'warning'} sx={{ mb: 1, bgcolor: 'rgba(255,0,0,0.05)' }}>
                     {alert.message}
                   </Alert>
                 ))}
               </Paper>
             )}
-          </Grid>
 
-          {/* Right Column: KPIs & History */}
-          <Grid item xs={12} md={6}>
-            {/* Maintenance KPIs */}
             <Paper sx={{ p: 3, mb: 3, background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.05)' }}>
               <Typography variant="h6" sx={{ color: '#ffaa33', mb: 2 }}>📊 Maintenance KPIs</Typography>
               <Grid container spacing={2}>
@@ -315,7 +337,26 @@ const Maintenance: React.FC = () => {
               </Grid>
             </Paper>
 
-            {/* Maintenance History */}
+            {/* Schedule Maintenance Quick Action */}
+            <Paper sx={{ p: 3, mb: 3, background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,170,51,0.1)' }}>
+              <Typography variant="h6" sx={{ color: '#ffaa33', mb: 2 }}>📋 Schedule Maintenance</Typography>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() => setOpenDialog(true)}
+                fullWidth
+                sx={{
+                  bgcolor: '#ffaa33',
+                  color: '#000000',
+                  '&:hover': { bgcolor: '#ff9900' },
+                  py: 1.5,
+                }}
+              >
+                Schedule New Maintenance
+              </Button>
+            </Paper>
+
+            {/* Maintenance History with Complete Button */}
             <Paper sx={{ p: 3, background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.05)' }}>
               <Typography variant="h6" sx={{ color: '#ffaa33', mb: 2 }}>📋 Maintenance History</Typography>
               <TableContainer>
@@ -333,7 +374,7 @@ const Maintenance: React.FC = () => {
                     {history.length === 0 ? (
                       <TableRow><TableCell colSpan={5} sx={{ color: '#888', textAlign: 'center', py: 4 }}>No maintenance history</TableCell></TableRow>
                     ) : (
-                      history.slice(0, 5).map((record: any) => {
+                      history.slice(0, 10).map((record: any) => {
                         const eq = equipment.find(e => e.id === record.equipment_id);
                         return (
                           <TableRow key={record.id}>
@@ -346,7 +387,7 @@ const Maintenance: React.FC = () => {
                                 color={record.status === 'completed' ? 'success' : 'warning'} 
                               />
                             </TableCell>
-                            <TableCell sx={{ color: '#888' }}>
+                            <TableCell sx={{ color: '#888', fontSize: '12px' }}>
                               {new Date(record.scheduled_date).toLocaleDateString()}
                             </TableCell>
                             <TableCell>
@@ -354,13 +395,20 @@ const Maintenance: React.FC = () => {
                                 <Button 
                                   size="small" 
                                   onClick={() => handleCompleteMaintenance(record.id)}
-                                  sx={{ color: '#00ff88' }}
+                                  startIcon={<CheckCircle />}
+                                  sx={{ 
+                                    color: '#00ff88',
+                                    '&:hover': { backgroundColor: 'rgba(0,255,136,0.1)' }
+                                  }}
                                 >
                                   Complete
                                 </Button>
                               )}
                               {record.status === 'completed' && (
-                                <CheckCircle sx={{ color: '#00ff88', fontSize: 20 }} />
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                  <CheckCircle sx={{ color: '#00ff88', fontSize: 18 }} />
+                                  <Typography variant="caption" sx={{ color: '#00ff88' }}>Done</Typography>
+                                </Box>
                               )}
                             </TableCell>
                           </TableRow>
@@ -385,7 +433,7 @@ const Maintenance: React.FC = () => {
             type="number"
             fullWidth
             value={newMaintenance.equipment_id}
-            onChange={(e) => setNewMaintenance({ ...newMaintenance, equipment_id: parseInt(e.target.value) })}
+            onChange={(e) => setNewMaintenance({ ...newMaintenance, equipment_id: parseInt(e.target.value) || 0 })}
             sx={{ input: { color: '#fff' }, label: { color: '#888' }, mb: 2 }}
           />
           <TextField
@@ -404,6 +452,7 @@ const Maintenance: React.FC = () => {
             value={newMaintenance.scheduled_date}
             onChange={(e) => setNewMaintenance({ ...newMaintenance, scheduled_date: e.target.value })}
             sx={{ input: { color: '#fff' }, label: { color: '#888' }, mb: 2 }}
+            InputLabelProps={{ shrink: true }}
           />
           <TextField
             margin="dense"
@@ -429,7 +478,7 @@ const Maintenance: React.FC = () => {
             type="number"
             fullWidth
             value={newMaintenance.cost}
-            onChange={(e) => setNewMaintenance({ ...newMaintenance, cost: parseFloat(e.target.value) })}
+            onChange={(e) => setNewMaintenance({ ...newMaintenance, cost: parseFloat(e.target.value) || 0 })}
             sx={{ input: { color: '#fff' }, label: { color: '#888' } }}
           />
         </DialogContent>
@@ -441,55 +490,55 @@ const Maintenance: React.FC = () => {
 
       {/* Prediction Details Dialog */}
       <Dialog open={predictionDialog} onClose={() => setPredictionDialog(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { bgcolor: '#0a0a0a', color: '#fff', border: '1px solid rgba(255,255,255,0.05)' } }}>
-        <DialogTitle sx={{ color: '#ffaa33' }}>🔮 Maintenance Prediction Details</DialogTitle>
+        <DialogTitle sx={{ color: '#ffaa33' }}>🔮 Prediction Details</DialogTitle>
         <DialogContent>
           {selectedPrediction && (
             <Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h6" sx={{ color: '#fff' }}>{selectedPrediction.name}</Typography>
-                <Chip 
-                  label={selectedPrediction.priority} 
-                  sx={{ 
-                    bgcolor: selectedPrediction.priority_color + '30',
-                    color: selectedPrediction.priority_color,
-                    fontWeight: 'bold',
-                  }} 
-                />
+                <Chip label={selectedPrediction.priority || 'low'} size="small" sx={{ bgcolor: selectedPrediction.priority === 'urgent' ? '#ff1744' + '30' : '#ffaa33' + '30', color: selectedPrediction.priority === 'urgent' ? '#ff1744' : '#ffaa33', fontWeight: 'bold' }} />
               </Box>
-              <Divider sx={{ borderColor: 'rgba(255,255,255,0.05)', mb: 2 }} />
-              <List dense>
-                <ListItem>
-                  <ListItemText primary="Equipment ID" secondary={selectedPrediction.equipment_id} />
-                </ListItem>
-                <ListItem>
-                  <ListItemText primary="Type" secondary={selectedPrediction.type} />
-                </ListItem>
-                <ListItem>
-                  <ListItemText primary="Operating Hours" secondary={`${selectedPrediction.current_operating_hours} hours`} />
-                </ListItem>
-                <ListItem>
-                  <ListItemText primary="Temperature" secondary={`${selectedPrediction.temperature}°C`} />
-                </ListItem>
-                <ListItem>
-                  <ListItemText primary="Vibration" secondary={`${selectedPrediction.vibration} mm/s`} />
-                </ListItem>
-                <ListItem>
-                  <ListItemText primary="Health Score" secondary={`${Math.round(selectedPrediction.health_score)}%`} />
-                </ListItem>
-                <ListItem>
-                  <ListItemText primary="Days Until Maintenance" secondary={`${selectedPrediction.days_until_maintenance} days`} />
-                </ListItem>
-                <ListItem>
-                  <ListItemText 
-                    primary="Recommended Action" 
-                    secondary={
-                      <Typography sx={{ color: selectedPrediction.priority_color, fontWeight: 'bold' }}>
-                        {selectedPrediction.recommended_action}
-                      </Typography>
-                    } 
-                  />
-                </ListItem>
-              </List>
+              <Grid container spacing={2}>
+                <Grid item xs={6}>
+                  <Typography color="#888" variant="caption">Health Score</Typography>
+                  <Typography variant="h6" sx={{ color: (selectedPrediction.health_score || 0) > 70 ? '#00ff88' : (selectedPrediction.health_score || 0) > 50 ? '#ffaa33' : '#ff6b6b' }}>
+                    {selectedPrediction.health_score || 0}%
+                  </Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography color="#888" variant="caption">Failure Probability</Typography>
+                  <Typography variant="h6" sx={{ color: (selectedPrediction.failure_probability || 0) < 30 ? '#00ff88' : (selectedPrediction.failure_probability || 0) < 50 ? '#ffaa33' : '#ff6b6b' }}>
+                    {selectedPrediction.failure_probability || 0}%
+                  </Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography color="#888" variant="caption">Operating Hours</Typography>
+                  <Typography color="#fff">{selectedPrediction.operating_hours || 0}h</Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography color="#888" variant="caption">Temperature</Typography>
+                  <Typography color={selectedPrediction.temperature > 70 ? '#ff6b6b' : '#fff'}>
+                    {selectedPrediction.temperature || 0}°C
+                  </Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography color="#888" variant="caption">Vibration</Typography>
+                  <Typography color={selectedPrediction.vibration > 5 ? '#ff6b6b' : '#fff'}>
+                    {selectedPrediction.vibration || 0} mm/s
+                  </Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography color="#888" variant="caption">Days Until Maintenance</Typography>
+                  <Typography color="#ffaa33">{selectedPrediction.days_until_maintenance || 0} days</Typography>
+                </Grid>
+                <Grid item xs={12}>
+                  <Divider sx={{ borderColor: 'rgba(255,255,255,0.05)', my: 2 }} />
+                  <Typography color="#888" variant="caption">Recommended Action</Typography>
+                  <Typography sx={{ color: '#ffaa33', fontWeight: 'bold', mt: 1 }}>
+                    {selectedPrediction.recommended_action || 'Monitor regularly'}
+                  </Typography>
+                </Grid>
+              </Grid>
             </Box>
           )}
         </DialogContent>
@@ -498,16 +547,12 @@ const Maintenance: React.FC = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Auto Alert Dialog */}
+      {/* Alert Dialog */}
       <Dialog open={alertDialog} onClose={() => setAlertDialog(false)} PaperProps={{ sx: { bgcolor: '#0a0a0a', color: '#fff', border: '1px solid rgba(255,107,107,0.2)' } }}>
         <DialogTitle sx={{ color: '#ff6b6b' }}>🚨 Maintenance Alerts</DialogTitle>
         <DialogContent>
           {alerts?.alerts?.map((alert: any, index: number) => (
-            <Alert 
-              key={index} 
-              severity={alert.severity === 'critical' ? 'error' : 'warning'} 
-              sx={{ mb: 1, bgcolor: 'rgba(255,0,0,0.05)' }}
-            >
+            <Alert key={index} severity={alert.severity === 'urgent' ? 'error' : 'warning'} sx={{ mb: 1, bgcolor: 'rgba(255,0,0,0.05)' }}>
               {alert.message}
             </Alert>
           ))}
