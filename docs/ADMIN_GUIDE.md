@@ -4,16 +4,25 @@
 Login: admin / admin123
 
 ## Health Checks
+```bash
 curl http://localhost:8000/health
+
 sudo docker exec -it semiconductor-postgres pg_isready -U postgres
+
 sudo docker-compose ps
+```
 
 ## Logs
+```basg
 sudo docker-compose logs api -f
+
 sudo docker-compose logs postgres -f
+```
 
 ## Backup
+```bash
 sudo docker exec -t semiconductor-postgres pg_dump -U postgres semiconductor > backup.sql
+```
 
 ## Restore
 cat backup.sql | sudo docker exec -i semiconductor-postgres psql -U postgres semiconductor
