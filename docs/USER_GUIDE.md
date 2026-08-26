@@ -1,7 +1,7 @@
 # User Guide
 
 ## Access
-1. Open http://localhost:5173
+1. Open http://localhost:5173 (based upon the local method for the kuberentes use the localhost number for that)
 2. Click Employee Login or Admin Login
 3. Use credentials:
    - Employee: employee / employee123
@@ -12,6 +12,7 @@
 - Equipment Health: Monitor all equipment
 - Yield Analytics: View quality metrics
 - Maintenance: Schedule and view maintenance
+- Wafer lifecycle: shows the life cycle of each wafer. 
 
 ## Wafer Production
 1. Click "New Batch"
@@ -28,6 +29,8 @@
 - View average yield
 - Check defect rates
 - Monitor quality score
+- Manufacturing Intelligence
+- Process Variation Analysis
 
 ## Maintenance
 - View predictions
