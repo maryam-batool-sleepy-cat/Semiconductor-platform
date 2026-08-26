@@ -8,9 +8,13 @@ The platform uses a Random Forest Classifier to predict equipment failures based
 
 ### Features Used
 operating_hours - Total hours equipment has run
+
 temperature - Current operating temperature in Celsius
+
 vibration - Current vibration level in mm/s
+
 age_days - Age of equipment in days
+
 maintenance_count - Number of maintenance events
 
 ### Target Variable
@@ -46,18 +50,8 @@ Click View Details on any prediction to see:
 ### 3. Training the Model
 
 The model trains automatically when you view predictions. To manually trigger training via API:
-curl http://localhost:8000/api/v1/maintenance/predictions
 
-To trigger via Python:
-python3 -c "
-from app.services.ml_model import predictor
-from app.core.database import SessionLocal
-from app.models.equipment import Equipment
-db = SessionLocal()
-equipment = db.query(Equipment).all()
-train_data = predictor.generate_training_data(equipment)
-predictor.train(train_data)
-"
+curl http://localhost:8000/api/v1/maintenance/predictions
 
 ## Health Score Calculation
 
@@ -95,7 +89,11 @@ The model should be retrained when:
 ### Model Not Training
 Check if there is enough data (minimum 3 equipment records)
 Verify the API is running
-Check logs: docker-compose logs api
+
+Check logs: 
+```bash
+docker-compose logs api
+```
 
 ### Incorrect Predictions
 Ensure equipment data is being collected
