@@ -11,12 +11,9 @@ kafka-python
 paho-mqtt
 pandas
 numpy
-scikit-learn
 plotly
 prometheus-fastapi-instrumentator
 python-multipart
-python-jose[cryptography]
-passlib[bcrypt]
 opentelemetry-api
 opentelemetry-sdk
 opentelemetry-instrumentation-fastapi
