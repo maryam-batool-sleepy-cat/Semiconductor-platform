@@ -139,7 +139,7 @@ spec:
         imagePullPolicy: IfNotPresent
         env:
         - name: API_BASE_URL
-          value: "http://10.103.234.164:8000/api/v1"
+          value: "http://api:8000"
         - name: PYTHONUNBUFFERED
           value: "1"
         command: ["python3", "-u", "/app/data-simulator/simulate.py"]
