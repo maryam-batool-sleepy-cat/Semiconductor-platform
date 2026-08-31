@@ -9,6 +9,10 @@ from app.models.equipment import Equipment, EquipmentStatus
 from app.services.ml_model import predictor
 from app.services.predictive_maintenance import maintenance_service
 from sqlalchemy import func
+import logging
+
+# Add logger
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
