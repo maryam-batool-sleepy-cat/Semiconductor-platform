@@ -31,6 +31,10 @@ cd Semiconductor-platform
 Start all services
 sudo docker-compose up -d
 
+start frontend
+cd frontend
+npm run dev
+
 Start the data simulator
 source backend/venv/bin/activate
 pip install -r backend/requirements.txt
