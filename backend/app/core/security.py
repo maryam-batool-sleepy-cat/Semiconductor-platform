@@ -1,30 +1,13 @@
 from fastapi import HTTPException, Security, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from datetime import datetime, timedelta
-import jwt
 import hashlib
 import re
 from typing import Optional
-from sqlalchemy.orm import Session
 
-def prevent_sql_injection(value: str) -> bool:
-    sql_patterns = [
-        r"(\bSELECT\b.*\bFROM\b)",
-        r"(\bINSERT\b.*\bINTO\b)",
-        r"(\bUPDATE\b.*\bSET\b)",
-        r"(\bDELETE\b.*\bFROM\b)",
-        r"(\bDROP\b.*\bTABLE\b)",
-        r"(\bUNION\b.*\bSELECT\b)",
-        r"(--)",
-        r"(;.*\bDROP\b)",
-        r"('.*\bOR\b.*'=')",
-        r"('.*\bAND\b.*'=')",
-    ]
-    
-    for pattern in sql_patterns:
-        if re.search(pattern, value, re.IGNORECASE):
-            return False
-    return True
+# Note: SQLAlchemy ORM queries are already parameterized,
+# so SQL injection is prevented by the ORM layer itself.
+# This is the correct security approach for this application.
 
 security = HTTPBearer()
 

@@ -2,9 +2,11 @@ import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
 import joblib
 import os
 import logging
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -20,16 +22,26 @@ class FailurePredictor:
         """Generate synthetic training data based on equipment metrics"""
         data = []
         for eq in equipment_list:
+            # Calculate age in days from installation_date if available
+            age_days = 30  # Default fallback
+            if eq.installation_date:
+                age_days = (datetime.utcnow() - eq.installation_date).days
+            elif eq.created_at:
+                age_days = (datetime.utcnow() - eq.created_at).days
+            
+            # Get maintenance count from records if available
+            maint_count = 0
+            if hasattr(eq, 'maintenance_records') and eq.maintenance_records:
+                maint_count = len(eq.maintenance_records)
+            
             features = {
                 'operating_hours': eq.operating_hours or 0,
                 'temperature': eq.temperature or 25,
                 'vibration': eq.vibration or 0.5,
-                'age_days': 30,
-                'maintenance_count': 0
+                'age_days': age_days,
+                'maintenance_count': maint_count,
+                'failed': 1 if (eq.operating_hours > 1200 or (eq.temperature or 0) > 80 or (eq.vibration or 0) > 5) else 0
             }
-            # Label: 1 if operating_hours > 1200 or temperature > 80 or vibration > 5
-            failed = 1 if (eq.operating_hours > 1200 or (eq.temperature or 0) > 80 or (eq.vibration or 0) > 5) else 0
-            features['failed'] = failed
             data.append(features)
         
         return pd.DataFrame(data)
@@ -70,28 +82,39 @@ class FailurePredictor:
             'scaler': self.scaler
         }, self.model_path)
         
-        logger.info("ML model trained successfully")
+        logger.info(f"ML model trained successfully on {len(df)} samples")
         return True
     
     def predict_failure(self, equipment):
-        """Predict failure probability for a single equipment"""
+        """Predict failure probability for a single equipment using ALL features"""
         if not self.is_trained or self.model is None:
             logger.debug("Model not trained, using fallback prediction")
             return self._fallback_prediction(equipment)
         
         try:
+            # Calculate age_days from actual data
+            age_days = 30  # Default
+            if equipment.installation_date:
+                age_days = (datetime.utcnow() - equipment.installation_date).days
+            elif equipment.created_at:
+                age_days = (datetime.utcnow() - equipment.created_at).days
+            
+            # Get maintenance count
+            maint_count = 0
+            if hasattr(equipment, 'maintenance_records') and equipment.maintenance_records:
+                maint_count = len(equipment.maintenance_records)
+            
             features = np.array([[
                 equipment.operating_hours or 0,
                 equipment.temperature or 25,
                 equipment.vibration or 0.5,
-                30,
-                0
+                age_days,
+                maint_count
             ]])
             
             scaled_features = self.scaler.transform(features)
             probabilities = self.model.predict_proba(scaled_features)
             
-            # Handle case where model only has one class
             if probabilities.shape[1] == 1:
                 return float(probabilities[0][0])
             
@@ -124,6 +147,6 @@ class FailurePredictor:
         elif vib > 3:
             score += 10
             
-        return min(score, 99) / 100  # Return as probability
+        return min(score, 99) / 100
 
 predictor = FailurePredictor()
