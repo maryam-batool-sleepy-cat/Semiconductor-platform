@@ -62,6 +62,9 @@ kubectl get services -n semiconductor
 ## Port Forward to Access
 ```bash
 kubectl port-forward -n semiconductor service/api 8000:8000
+```
+In a different tab run this
+```bash
 kubectl port-forward -n semiconductor service/frontend 8080:80
 ```
 
