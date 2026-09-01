@@ -21,7 +21,13 @@ jobs:
     - name: Install backend dependencies
       run: |
         cd backend
-        pip install -r requirements.txt || echo "No requirements file found"
+        pip install -r requirements.txt
+        pip install pytest pytest-asyncio httpx
+    
+    - name: Run backend tests
+      run: |
+        cd backend
+        pytest tests/ -v
     
     - name: Set up Node.js
       uses: actions/setup-node@v4
@@ -31,12 +37,12 @@ jobs:
     - name: Install frontend dependencies
       run: |
         cd frontend
-        npm install --legacy-peer-deps || echo "npm install failed"
+        npm install --legacy-peer-deps
     
     - name: Build frontend
       run: |
         cd frontend
-        npm run build || echo "Build skipped - no build script"
+        npm run build
     
     - name: Security scan with Trivy
       uses: aquasecurity/trivy-action@master
@@ -44,7 +50,6 @@ jobs:
         scan-type: 'fs'
         scan-ref: '.'
         format: 'table'
-        exit-code: '0'
 
   build:
     needs: test
@@ -57,7 +62,7 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
     
-    - name: Build Docker image (skip push for now)
+    - name: Build API image
       run: |
         docker build -t semiconductor-api:latest ./backend
 
@@ -74,10 +79,11 @@ jobs:
       with:
         version: 'latest'
     
-    - name: Deploy to Kubernetes (skip if no k8s config)
+    - name: Deploy to Kubernetes
       run: |
         if [ -f "k8s/deployment.yaml" ]; then
-          echo "K8s deployment found, but skipping for now"
+          kubectl apply -f k8s/deployment.yaml --namespace semiconductor --dry-run=client
+          echo "✅ K8s deployment validated"
         else
-          echo "No k8s config found, skipping deployment"
+          echo "⚠️ No K8s config found"
         fi
