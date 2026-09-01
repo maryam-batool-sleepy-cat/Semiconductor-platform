@@ -2,6 +2,9 @@ import axios from 'axios';
 
 const API_BASE_URL = 'http://localhost:8000/api/v1';
 
+// Get token from localStorage
+const getToken = () => localStorage.getItem('token');
+
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -9,6 +12,24 @@ const api = axios.create({
   },
   timeout: 30000,
 });
+
+// Add token to requests if available
+api.interceptors.request.use(
+  (config) => {
+    const token = getToken();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Auth
+export const authService = {
+  login: (username: string, password: string) => 
+    api.post('/auth/login', { username, password }),
+};
 
 // Dashboard
 export const dashboardService = {
@@ -23,8 +44,6 @@ export const waferService = {
   updateWaferStage: (waferId: string, stage: string) => 
     api.patch(`/wafers/wafers/${waferId}/stage`, { stage }),
   getWafer: (waferId: string) => api.get(`/wafers/wafers/${waferId}`),
-  getActiveWafers: () => api.get('/wafers/active'),
-  getProductionProgress: () => api.get('/wafers/progress'),
   autoAdvanceBatch: (batchId: number) => api.post(`/wafers/auto-advance/${batchId}`),
   autoCompleteBatch: (batchId: number) => api.post(`/wafers/auto-complete/${batchId}`),
 };

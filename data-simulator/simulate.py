@@ -17,14 +17,14 @@ logger = logging.getLogger(__name__)
 
 class SemiconductorSimulator:
     def __init__(self):
-        # Try multiple API endpoints
         self.api_urls = [
             os.environ.get('API_URL', 'http://api:8000'),
             'http://localhost:8000',
             'http://127.0.0.1:8000'
         ]
-        self.api_url = self.find_working_api()
-        self.base_url = f"{self.api_url}/api/v1" if self.api_url else None
+        self.api_url = None
+        self.token = None
+        self.base_url = None
         self.batch_counter = random.randint(1000, 9999)
         self.running = True
         self.equipment_data = [
@@ -38,17 +38,47 @@ class SemiconductorSimulator:
             {"equipment_id": "INSP-002", "name": "KLA-Tencor 2950", "type": "inspection", "model": "2950", "manufacturer": "KLA-Tencor"}
         ]
     
+    def get_token(self):
+        """Get JWT token from API"""
+        for url in self.api_urls:
+            try:
+                response = requests.post(
+                    f"{url}/api/v1/auth/login",
+                    json={"username": "admin", "password": "admin123"},
+                    timeout=5
+                )
+                if response.status_code == 200:
+                    data = response.json()
+                    self.token = data.get('access_token')
+                    logger.info(f"✅ Got JWT token from: {url}")
+                    return True
+            except Exception as e:
+                logger.debug(f"Token attempt failed for {url}: {e}")
+        logger.error("❌ Failed to get JWT token")
+        return False
+    
+    def get_headers(self):
+        """Get headers with JWT token"""
+        if self.token:
+            return {
+                "Authorization": f"Bearer {self.token}",
+                "Content-Type": "application/json"
+            }
+        return {"Content-Type": "application/json"}
+    
     def find_working_api(self):
         for url in self.api_urls:
             try:
                 response = requests.get(f"{url}/health", timeout=2)
                 if response.status_code == 200:
+                    self.api_url = url
+                    self.base_url = f"{url}/api/v1"
                     logger.info(f"✅ Found working API at: {url}")
-                    return url
+                    return True
             except:
                 continue
         logger.error("❌ No working API found")
-        return None
+        return False
     
     def wait_for_api(self):
         logger.info("Waiting for API to be ready...")
@@ -69,13 +99,34 @@ class SemiconductorSimulator:
     
     def register_equipment(self):
         logger.info("Registering equipment...")
+        headers = self.get_headers()
         for eq in self.equipment_data:
             try:
-                response = requests.post(f"{self.base_url}/equipment/", json=eq, timeout=5)
+                response = requests.post(
+                    f"{self.base_url}/equipment/",
+                    json=eq,
+                    headers=headers,
+                    timeout=5
+                )
                 if response.status_code in [200, 201]:
                     logger.info(f"✅ Registered: {eq['equipment_id']}")
                 elif response.status_code == 400:
                     logger.info(f"⏭️ Already exists: {eq['equipment_id']}")
+                elif response.status_code == 401:
+                    logger.warning(f"❌ Auth failed for {eq['equipment_id']} - refreshing token")
+                    self.get_token()
+                    headers = self.get_headers()
+                    # Retry once
+                    response = requests.post(
+                        f"{self.base_url}/equipment/",
+                        json=eq,
+                        headers=headers,
+                        timeout=5
+                    )
+                    if response.status_code in [200, 201]:
+                        logger.info(f"✅ Registered: {eq['equipment_id']}")
+                    else:
+                        logger.warning(f"❌ Failed {eq['equipment_id']}: {response.status_code}")
                 else:
                     logger.warning(f"❌ Failed {eq['equipment_id']}: {response.status_code}")
             except Exception as e:
@@ -90,11 +141,33 @@ class SemiconductorSimulator:
         }
         
         try:
-            response = requests.post(f"{self.base_url}/wafers/batches", json=batch_data, timeout=10)
+            response = requests.post(
+                f"{self.base_url}/wafers/batches",
+                json=batch_data,
+                headers=self.get_headers(),
+                timeout=10
+            )
             if response.status_code == 200:
                 batch = response.json()
                 logger.info(f"✅ Created: {batch['batch_name']} ({batch['total_wafers']} wafers)")
                 return batch
+            elif response.status_code == 401:
+                logger.warning("Auth failed - refreshing token")
+                self.get_token()
+                # Retry once
+                response = requests.post(
+                    f"{self.base_url}/wafers/batches",
+                    json=batch_data,
+                    headers=self.get_headers(),
+                    timeout=10
+                )
+                if response.status_code == 200:
+                    batch = response.json()
+                    logger.info(f"✅ Created: {batch['batch_name']} ({batch['total_wafers']} wafers)")
+                    return batch
+                else:
+                    logger.error(f"❌ Failed to create batch: {response.status_code}")
+                    return None
             else:
                 logger.error(f"❌ Failed to create batch: {response.status_code}")
                 return None
@@ -113,7 +186,11 @@ class SemiconductorSimulator:
             time.sleep(random.uniform(2, 4))
             
             try:
-                response = requests.get(f"{self.base_url}/wafers/batches/{batch_id}/history", timeout=5)
+                response = requests.get(
+                    f"{self.base_url}/wafers/batches/{batch_id}/history",
+                    headers=self.get_headers(),
+                    timeout=5
+                )
                 if response.status_code == 200:
                     batch_data = response.json()
                     for wafer in batch_data.get('wafers', []):
@@ -122,6 +199,7 @@ class SemiconductorSimulator:
                             requests.patch(
                                 f"{self.base_url}/wafers/wafers/{wafer_id}/stage",
                                 json={"stage": stage},
+                                headers=self.get_headers(),
                                 timeout=5
                             )
                             
@@ -138,11 +216,19 @@ class SemiconductorSimulator:
                                         "time": round(random.uniform(10, 30), 1)
                                     })
                                 }
-                                requests.post(f"{self.base_url}/yield/", json=yield_data, timeout=5)
+                                requests.post(
+                                    f"{self.base_url}/yield/",
+                                    json=yield_data,
+                                    headers=self.get_headers(),
+                                    timeout=5
+                                )
                         except Exception as e:
                             logger.error(f"Wafer error: {e}")
                     
                     logger.info(f"✅ Completed: {stage}")
+                elif response.status_code == 401:
+                    logger.warning("Auth failed during production - refreshing token")
+                    self.get_token()
                 else:
                     logger.warning(f"Failed to get batch history: {response.status_code}")
             except Exception as e:
@@ -152,7 +238,11 @@ class SemiconductorSimulator:
         logger.info("Starting equipment monitoring...")
         while self.running:
             try:
-                response = requests.get(f"{self.base_url}/equipment/", timeout=5)
+                response = requests.get(
+                    f"{self.base_url}/equipment/",
+                    headers=self.get_headers(),
+                    timeout=5
+                )
                 if response.status_code == 200:
                     equipment_list = response.json()
                     for eq in equipment_list:
@@ -162,6 +252,7 @@ class SemiconductorSimulator:
                             requests.post(
                                 f"{self.base_url}/equipment/{eq_id}/utilization",
                                 json={"hours": hours},
+                                headers=self.get_headers(),
                                 timeout=5
                             )
                         except Exception as e:
@@ -178,6 +269,11 @@ class SemiconductorSimulator:
         
         if not self.wait_for_api():
             logger.error("Cannot start - API not available")
+            return
+        
+        # Get JWT token
+        if not self.get_token():
+            logger.error("Cannot start - Failed to get JWT token")
             return
         
         self.register_equipment()

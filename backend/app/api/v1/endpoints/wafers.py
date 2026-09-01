@@ -6,20 +6,14 @@ from pydantic import BaseModel
 from app.core.database import get_db
 from app.models.wafer import Wafer, WaferBatch, WaferStatus
 from app.schemas.wafer import WaferCreate, WaferResponse, BatchCreate, BatchResponse
-import random
+from app.core.security import verify_token
 
 router = APIRouter()
 
 class StageUpdate(BaseModel):
     stage: str
 
-class AutoAdvanceResponse(BaseModel):
-    wafer_id: str
-    old_stage: str
-    new_stage: str
-    message: str
-
-@router.post("/batches", response_model=BatchResponse)
+@router.post("/batches", response_model=BatchResponse, dependencies=[Depends(verify_token)])
 def create_batch(batch: BatchCreate, db: Session = Depends(get_db)):
     db_batch = WaferBatch(
         batch_name=batch.batch_name,
@@ -41,7 +35,7 @@ def create_batch(batch: BatchCreate, db: Session = Depends(get_db)):
     db.commit()
     return db_batch
 
-@router.get("/batches")
+@router.get("/batches", dependencies=[Depends(verify_token)])
 def get_batches(db: Session = Depends(get_db)):
     batches = db.query(WaferBatch).all()
     return {
@@ -49,14 +43,14 @@ def get_batches(db: Session = Depends(get_db)):
         "total": len(batches)
     }
 
-@router.get("/wafers/{wafer_id}", response_model=WaferResponse)
+@router.get("/wafers/{wafer_id}", response_model=WaferResponse, dependencies=[Depends(verify_token)])
 def get_wafer(wafer_id: str, db: Session = Depends(get_db)):
     wafer = db.query(Wafer).filter(Wafer.wafer_id == wafer_id).first()
     if not wafer:
         raise HTTPException(status_code=404, detail="Wafer not found")
     return wafer
 
-@router.patch("/wafers/{wafer_id}/stage")
+@router.patch("/wafers/{wafer_id}/stage", dependencies=[Depends(verify_token)])
 def update_wafer_stage(
     wafer_id: str,
     stage_update: StageUpdate,
@@ -87,7 +81,7 @@ def update_wafer_stage(
     
     return {"message": f"Wafer {wafer_id} updated to {new_stage.value}", "wafer": wafer}
 
-@router.get("/batches/{batch_id}/history")
+@router.get("/batches/{batch_id}/history", dependencies=[Depends(verify_token)])
 def get_batch_history(batch_id: int, db: Session = Depends(get_db)):
     batch = db.query(WaferBatch).filter(WaferBatch.id == batch_id).first()
     if not batch:
@@ -101,10 +95,8 @@ def get_batch_history(batch_id: int, db: Session = Depends(get_db)):
         "completed": sum(1 for w in wafers if w.current_stage == WaferStatus.COMPLETED)
     }
 
-# NEW: Auto-advance endpoint
-@router.post("/auto-advance/{batch_id}")
+@router.post("/auto-advance/{batch_id}", dependencies=[Depends(verify_token)])
 def auto_advance_batch(batch_id: int, db: Session = Depends(get_db)):
-    """Automatically advance all wafers in a batch to the next stage"""
     batch = db.query(WaferBatch).filter(WaferBatch.id == batch_id).first()
     if not batch:
         raise HTTPException(status_code=404, detail="Batch not found")
@@ -112,7 +104,6 @@ def auto_advance_batch(batch_id: int, db: Session = Depends(get_db)):
     if batch.status == WaferStatus.COMPLETED:
         return {"message": "Batch already completed", "wafers": []}
     
-    # Define stage order
     stage_order = [
         WaferStatus.REGISTERED,
         WaferStatus.LITHOGRAPHY,
@@ -142,7 +133,6 @@ def auto_advance_batch(batch_id: int, db: Session = Depends(get_db)):
     
     db.commit()
     
-    # Check if all wafers are completed
     all_completed = all(w.current_stage == WaferStatus.COMPLETED for w in batch.wafers)
     if all_completed:
         batch.status = WaferStatus.COMPLETED
@@ -154,10 +144,8 @@ def auto_advance_batch(batch_id: int, db: Session = Depends(get_db)):
         "batch_status": batch.status.value
     }
 
-# NEW: Auto-complete entire batch
-@router.post("/auto-complete/{batch_id}")
+@router.post("/auto-complete/{batch_id}", dependencies=[Depends(verify_token)])
 def auto_complete_batch(batch_id: int, db: Session = Depends(get_db)):
-    """Automatically complete all wafers in a batch"""
     batch = db.query(WaferBatch).filter(WaferBatch.id == batch_id).first()
     if not batch:
         raise HTTPException(status_code=404, detail="Batch not found")

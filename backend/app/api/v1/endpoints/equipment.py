@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from app.core.database import get_db
 from app.models.equipment import Equipment, EquipmentStatus, EquipmentType
 from app.schemas.equipment import EquipmentCreate, EquipmentResponse
+from app.core.security import verify_token
 from sqlalchemy import func
 
 router = APIRouter()
@@ -13,23 +14,7 @@ router = APIRouter()
 class UtilizationUpdate(BaseModel):
     hours: float
 
-class EquipmentMetricsResponse(BaseModel):
-    equipment_id: str
-    name: str
-    type: str
-    status: str
-    operating_hours: float
-    uptime_hours: float
-    downtime_hours: float
-    availability_percentage: float
-    performance_efficiency: float
-    quality_rate: float
-    oee_score: float
-    temperature: float
-    vibration: float
-    health_score: float
-
-@router.post("/", response_model=EquipmentResponse)
+@router.post("/", response_model=EquipmentResponse, dependencies=[Depends(verify_token)])
 def register_equipment(equipment: EquipmentCreate, db: Session = Depends(get_db)):
     existing = db.query(Equipment).filter(Equipment.equipment_id == equipment.equipment_id).first()
     if existing:
@@ -48,7 +33,7 @@ def register_equipment(equipment: EquipmentCreate, db: Session = Depends(get_db)
     db.refresh(db_equipment)
     return db_equipment
 
-@router.get("/", response_model=List[EquipmentResponse])
+@router.get("/", response_model=List[EquipmentResponse], dependencies=[Depends(verify_token)])
 def list_equipment(
     type: Optional[EquipmentType] = None,
     status: Optional[EquipmentStatus] = None,
@@ -61,13 +46,12 @@ def list_equipment(
         query = query.filter(Equipment.status == status)
     return query.all()
 
-@router.get("/{equipment_id}/health")
+@router.get("/{equipment_id}/health", dependencies=[Depends(verify_token)])
 def get_equipment_health(equipment_id: str, db: Session = Depends(get_db)):
     equipment = db.query(Equipment).filter(Equipment.equipment_id == equipment_id).first()
     if not equipment:
         raise HTTPException(status_code=404, detail="Equipment not found")
     
-    # Calculate health metrics
     health_score = 100
     alerts = []
     
@@ -92,11 +76,8 @@ def get_equipment_health(equipment_id: str, db: Session = Depends(get_db)):
         health_score -= 5
         alerts.append("Vibration above normal")
     
-    # Calculate availability (SEMI E10)
     total_time = equipment.total_time_hours or equipment.operating_hours + 100
     availability = round((equipment.uptime_hours / total_time) * 100, 2) if total_time > 0 else 0
-    
-    # Calculate OEE (Overall Equipment Effectiveness)
     oee_score = round(health_score * (availability / 100), 2)
     
     status_value = "healthy" if health_score > 80 else "warning" if health_score > 60 else "critical"
@@ -121,7 +102,7 @@ def get_equipment_health(equipment_id: str, db: Session = Depends(get_db)):
         "next_maintenance": equipment.next_maintenance_date
     }
 
-@router.post("/{equipment_id}/utilization")
+@router.post("/{equipment_id}/utilization", dependencies=[Depends(verify_token)])
 def update_utilization(
     equipment_id: str,
     utilization: UtilizationUpdate,
@@ -151,9 +132,8 @@ def update_utilization(
         "downtime_hours": round(equipment.downtime_hours or 0, 2)
     }
 
-@router.get("/metrics/{equipment_id}")
+@router.get("/metrics/{equipment_id}", dependencies=[Depends(verify_token)])
 def get_equipment_metrics(equipment_id: str, db: Session = Depends(get_db)):
-    """Get comprehensive equipment metrics (SEMI E10, OEE)"""
     equipment = db.query(Equipment).filter(Equipment.equipment_id == equipment_id).first()
     if not equipment:
         raise HTTPException(status_code=404, detail="Equipment not found")
@@ -162,13 +142,8 @@ def get_equipment_metrics(equipment_id: str, db: Session = Depends(get_db)):
     uptime_percentage = (equipment.uptime_hours / total_time) * 100 if total_time > 0 else 0
     downtime_percentage = (equipment.downtime_hours / total_time) * 100 if total_time > 0 else 0
     
-    # Performance efficiency (SEMI E10)
     performance_efficiency = min(100, (equipment.uptime_hours / (total_time * 0.9)) * 100 if total_time > 0 else 0)
-    
-    # Quality rate (based on yield data)
-    quality_rate = 95.0  # Default - could be calculated from yield data
-    
-    # OEE = Availability × Performance × Quality
+    quality_rate = 95.0
     oee_score = (uptime_percentage / 100) * (performance_efficiency / 100) * (quality_rate / 100) * 100
     
     return {
@@ -192,9 +167,8 @@ def get_equipment_metrics(equipment_id: str, db: Session = Depends(get_db)):
         "next_maintenance": equipment.next_maintenance_date
     }
 
-@router.get("/report")
+@router.get("/report", dependencies=[Depends(verify_token)])
 def get_equipment_health_report(db: Session = Depends(get_db)):
-    """Generate equipment health report (SEMI E10, E79, ISO 9001)"""
     equipment_list = db.query(Equipment).all()
     
     total = len(equipment_list)
@@ -203,13 +177,11 @@ def get_equipment_health_report(db: Session = Depends(get_db)):
     degraded = sum(1 for e in equipment_list if e.status == EquipmentStatus.DEGRADED)
     offline = sum(1 for e in equipment_list if e.status == EquipmentStatus.OFFLINE)
     
-    # Calculate average metrics
     avg_uptime = sum(e.uptime_hours or 0 for e in equipment_list) / total if total > 0 else 0
     avg_downtime = sum(e.downtime_hours or 0 for e in equipment_list) / total if total > 0 else 0
     avg_operating_hours = sum(e.operating_hours or 0 for e in equipment_list) / total if total > 0 else 0
     avg_health = sum(100 - (e.operating_hours / 20) for e in equipment_list) / total if total > 0 else 0
     
-    # Equipment by type
     by_type = {}
     for eq in equipment_list:
         type_key = eq.type.value

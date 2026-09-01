@@ -26,3 +26,4 @@ joblib==1.3.2
 # Security Packages
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
+pyjwt==2.8.0

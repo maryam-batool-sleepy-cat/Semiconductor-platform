@@ -10,30 +10,31 @@ import {
   Alert,
 } from '@mui/material';
 import { Login as LoginIcon, Factory } from '@mui/icons-material';
+import { authService } from '../services/api';
 
 const EmployeeLogin: React.FC = () => {
   const navigate = useNavigate();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
-    // SQL injection prevention
-    const sqlPattern = /(\bSELECT\b|\bINSERT\b|\bUPDATE\b|\bDELETE\b|\bDROP\b|\bUNION\b|--|;)/i;
-    if (sqlPattern.test(username) || sqlPattern.test(password)) {
-      setError('Invalid characters detected');
-      return;
-    }
-
-    // Check for valid credentials
-    if (username === 'employee' && password === 'employee123') {
+  const handleLogin = async () => {
+    setLoading(true);
+    setError('');
+    
+    try {
+      const response = await authService.login(username, password);
+      const { access_token } = response.data;
+      localStorage.setItem('token', access_token);
       localStorage.setItem('isLoggedIn', 'true');
       localStorage.setItem('isAdmin', 'false');
       localStorage.setItem('username', username);
-      setError('');
       navigate('/dashboard');
-    } else {
-      setError('Invalid credentials');
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Invalid credentials');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -47,7 +48,6 @@ const EmployeeLogin: React.FC = () => {
       position: 'relative',
       zIndex: 1,
     }}>
-      {/* Faint pattern background */}
       <Box sx={{
         position: 'fixed',
         top: 0,
@@ -72,7 +72,7 @@ const EmployeeLogin: React.FC = () => {
               Employee Login
             </Typography>
             <Typography variant="body2" sx={{ color: '#888', mt: 1 }}>
-              Enter your employee credentials to access the system
+              Enter your employee credentials
             </Typography>
           </Box>
 
@@ -123,15 +123,17 @@ const EmployeeLogin: React.FC = () => {
             variant="contained"
             startIcon={<LoginIcon />}
             onClick={handleLogin}
+            disabled={loading}
             sx={{
               bgcolor: '#00ff88',
               color: '#000000',
               py: 1.5,
               fontWeight: 'bold',
               '&:hover': { bgcolor: '#00cc66' },
+              '&:disabled': { opacity: 0.5 },
             }}
           >
-            Sign In
+            {loading ? 'Signing in...' : 'Sign In'}
           </Button>
 
           <Box sx={{ mt: 2, textAlign: 'center' }}>

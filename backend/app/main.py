@@ -10,7 +10,7 @@ from app.models import wafer, equipment, maintenance, yield_analytics, isa95
 from app.api.v1.endpoints import (
     wafers, equipment as equipment_endpoints,
     maintenance as maintenance_endpoints, yield_analytics as yield_endpoints,
-    dashboard, isa95 as isa95_endpoints
+    dashboard, isa95 as isa95_endpoints, auth
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -32,7 +32,7 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# --- CORS Configuration ---
+# CORS Configuration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -41,6 +41,7 @@ app.add_middleware(
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "http://localhost:8080",
+        "*",
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
@@ -49,6 +50,10 @@ app.add_middleware(
 
 Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 
+# Include routers - Auth router is public
+app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
+
+# Protected routers (require JWT)
 app.include_router(wafers.router, prefix="/api/v1/wafers", tags=["Wafers"])
 app.include_router(equipment_endpoints.router, prefix="/api/v1/equipment", tags=["Equipment"])
 app.include_router(maintenance_endpoints.router, prefix="/api/v1/maintenance", tags=["Maintenance"])
