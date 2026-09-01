@@ -24,9 +24,11 @@ class SemiconductorSimulator:
         ]
         self.api_url = None
         self.token = None
+        self.token_expiry = None
         self.base_url = None
         self.batch_counter = random.randint(1000, 9999)
         self.running = True
+        self.token_refresh_attempts = 0
         self.equipment_data = [
             {"equipment_id": "LITHO-001", "name": "ASML NXT:1980", "type": "lithography", "model": "NXT:1980", "manufacturer": "ASML"},
             {"equipment_id": "LITHO-002", "name": "ASML NXT:2000", "type": "lithography", "model": "NXT:2000", "manufacturer": "ASML"},
@@ -38,8 +40,16 @@ class SemiconductorSimulator:
             {"equipment_id": "INSP-002", "name": "KLA-Tencor 2950", "type": "inspection", "model": "2950", "manufacturer": "KLA-Tencor"}
         ]
     
-    def get_token(self):
-        """Get JWT token from API"""
+    def get_token(self, force=False):
+        """Get JWT token from API with retry logic"""
+        if not force and self.token and self.token_expiry:
+            # Check if token is still valid (with 5 min buffer)
+            if datetime.now() < self.token_expiry:
+                return True
+        
+        logger.info("Getting JWT token...")
+        self.token_refresh_attempts += 1
+        
         for url in self.api_urls:
             try:
                 response = requests.post(
@@ -50,21 +60,30 @@ class SemiconductorSimulator:
                 if response.status_code == 200:
                     data = response.json()
                     self.token = data.get('access_token')
-                    logger.info(f"✅ Got JWT token from: {url}")
+                    # Token expires in 30 min, refresh 5 min early
+                    self.token_expiry = datetime.now() + timedelta(minutes=25)
+                    self.api_url = url
+                    self.base_url = f"{url}/api/v1"
+                    logger.info(f"✅ Got JWT token (valid for ~25 min)")
+                    self.token_refresh_attempts = 0
                     return True
+                else:
+                    logger.warning(f"Token attempt failed: {response.status_code}")
             except Exception as e:
-                logger.debug(f"Token attempt failed for {url}: {e}")
-        logger.error("❌ Failed to get JWT token")
+                logger.debug(f"Token attempt failed: {e}")
+            time.sleep(2)
+        
+        logger.error(f"❌ Failed to get JWT token after {self.token_refresh_attempts} attempts")
         return False
     
     def get_headers(self):
-        """Get headers with JWT token"""
-        if self.token:
-            return {
-                "Authorization": f"Bearer {self.token}",
-                "Content-Type": "application/json"
-            }
-        return {"Content-Type": "application/json"}
+        """Get headers with JWT token, refresh if needed"""
+        if not self.token or not self.token_expiry or datetime.now() > self.token_expiry:
+            self.get_token()
+        return {
+            "Authorization": f"Bearer {self.token}",
+            "Content-Type": "application/json"
+        }
     
     def find_working_api(self):
         for url in self.api_urls:
@@ -99,34 +118,18 @@ class SemiconductorSimulator:
     
     def register_equipment(self):
         logger.info("Registering equipment...")
-        headers = self.get_headers()
         for eq in self.equipment_data:
             try:
                 response = requests.post(
                     f"{self.base_url}/equipment/",
                     json=eq,
-                    headers=headers,
+                    headers=self.get_headers(),
                     timeout=5
                 )
                 if response.status_code in [200, 201]:
                     logger.info(f"✅ Registered: {eq['equipment_id']}")
                 elif response.status_code == 400:
                     logger.info(f"⏭️ Already exists: {eq['equipment_id']}")
-                elif response.status_code == 401:
-                    logger.warning(f"❌ Auth failed for {eq['equipment_id']} - refreshing token")
-                    self.get_token()
-                    headers = self.get_headers()
-                    # Retry once
-                    response = requests.post(
-                        f"{self.base_url}/equipment/",
-                        json=eq,
-                        headers=headers,
-                        timeout=5
-                    )
-                    if response.status_code in [200, 201]:
-                        logger.info(f"✅ Registered: {eq['equipment_id']}")
-                    else:
-                        logger.warning(f"❌ Failed {eq['equipment_id']}: {response.status_code}")
                 else:
                     logger.warning(f"❌ Failed {eq['equipment_id']}: {response.status_code}")
             except Exception as e:
@@ -152,22 +155,10 @@ class SemiconductorSimulator:
                 logger.info(f"✅ Created: {batch['batch_name']} ({batch['total_wafers']} wafers)")
                 return batch
             elif response.status_code == 401:
-                logger.warning("Auth failed - refreshing token")
-                self.get_token()
-                # Retry once
-                response = requests.post(
-                    f"{self.base_url}/wafers/batches",
-                    json=batch_data,
-                    headers=self.get_headers(),
-                    timeout=10
-                )
-                if response.status_code == 200:
-                    batch = response.json()
-                    logger.info(f"✅ Created: {batch['batch_name']} ({batch['total_wafers']} wafers)")
-                    return batch
-                else:
-                    logger.error(f"❌ Failed to create batch: {response.status_code}")
-                    return None
+                # Token expired, refresh and retry
+                logger.warning("Token expired, refreshing...")
+                self.get_token(force=True)
+                return self.create_batch()  # Retry with new token
             else:
                 logger.error(f"❌ Failed to create batch: {response.status_code}")
                 return None
@@ -227,8 +218,11 @@ class SemiconductorSimulator:
                     
                     logger.info(f"✅ Completed: {stage}")
                 elif response.status_code == 401:
-                    logger.warning("Auth failed during production - refreshing token")
-                    self.get_token()
+                    logger.warning("Token expired during production, refreshing...")
+                    self.get_token(force=True)
+                    # Retry this stage
+                    self.simulate_production(batch_id)
+                    return
                 else:
                     logger.warning(f"Failed to get batch history: {response.status_code}")
             except Exception as e:
@@ -263,6 +257,8 @@ class SemiconductorSimulator:
                 time.sleep(10)
     
     def run_simulation(self):
+        from datetime import timedelta
+        
         logger.info("="*60)
         logger.info("🏭 Semiconductor Manufacturing Simulation")
         logger.info("="*60)
@@ -271,7 +267,6 @@ class SemiconductorSimulator:
             logger.error("Cannot start - API not available")
             return
         
-        # Get JWT token
         if not self.get_token():
             logger.error("Cannot start - Failed to get JWT token")
             return
