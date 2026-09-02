@@ -66,7 +66,11 @@ The platform predicts equipment failures based on:
 ## 📊 Monitoring
 
 - Prometheus: Collects API metrics
+links : http://localhost:9090/targets
+http://localhost:9090/query?g0.expr=up&g0.show_tree=0&g0.tab=graph&g0.range_input=1h&g0.res_type=auto&g0.res_density=medium&g0.display_mode=lines&g0.show_exemplars=0
+
 - Grafana: Pre-built dashboards for API and equipment metrics
+link (credential admin/admin) http://localhost:3000/?orgId=1
 
 ## 🛠️ Technology Stack
 
