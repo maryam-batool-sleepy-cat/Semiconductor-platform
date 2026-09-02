@@ -13,6 +13,7 @@ The Semiconductor Manufacturing Operations Platform provides real-time monitorin
 
 ### Credentials
 Employee: employee / employee123
+
 Admin: admin / admin123
 
 ## Dashboard
@@ -50,7 +51,6 @@ Admin: admin / admin123
 ### Auto-Advance Features
 - Auto-Advance One Stage: Moves all wafers in a batch to the next stage
 - Auto-Complete All: Completes all wafers in a batch instantly
-- These buttons appear in the Actions column of the batches table
 
 ## Equipment Health
 
@@ -130,7 +130,3 @@ The data simulator runs continuously and:
 2. Navigation: Use top menu to switch sections
 3. Data Updates: Data refreshes every 30 seconds
 4. Session: Auto-logout after 30 minutes of inactivity
-
-## Support
-
-Message me. 
