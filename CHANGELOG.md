@@ -1,53 +1,43 @@
 # Changelog
 
-## Version 1.2.0 - August 2026
+## Version 2.0.0 - September 2026
 
 ### Added
-- ML-Based Predictive Maintenance using Random Forest
-- Keycloak Identity and Access Management
-- Kubernetes deployment with network policies
-- Grafana dashboards for API and equipment metrics
-- Prometheus monitoring integration
+- JWT Authentication for all API endpoints
+- Token auto-refresh mechanism in data simulator
+- End-to-end testing suite (16 tests covering all sections)
+- Auto-advance and auto-complete for wafer batches
 - Health Score and Failure Probability calculations
-- Network segmentation policies
-- Complete documentation suite
+- ML model now uses all 5 features (age, maintenance count)
+- Kubernetes network policies
+- Comprehensive documentation updates
 
 ### Fixed
 - CORS configuration for all endpoints
 - Maintenance completion workflow
-- Grafana permission issues
-- Database connection pooling
+- Token refresh in simulator
+- Frontend build issues
 - React Router warnings
 
 ### Changed
-- Updated maintenance UI with ML predictions
-- Enhanced equipment health monitoring
-- Improved yield analytics dashboard
-- Restructured API endpoints
-- Updated Docker Compose configuration
+- Updated ML model to use real data for all features
+- Improved simulator token handling
+- Enhanced documentation structure
+- Simplified CI/CD pipeline
+- Toned down security claims in README
 
-## Version 1.1.0 - July 2026
-
-### Added
-- Wafer production management
-- Equipment health monitoring
-- Predictive maintenance basics
-- Yield analytics
-- Executive dashboard
-- Data simulator
-
-### Fixed
-- Initial CORS issues
-- Database migrations
-- Frontend routing
-
-## Version 1.0.0 - June 2026
+## Version 1.0.0 - August 2026
 
 ### Initial Release
-- Basic FastAPI backend
+- FastAPI backend
 - React frontend
 - PostgreSQL database
 - Docker Compose setup
-- Basic monitoring
+- Basic monitoring with Prometheus/Grafana
+- Wafer production management
+- Equipment health monitoring
+- Predictive maintenance
+- Yield analytics
+- Executive dashboard
 
-
+---

@@ -1,20 +1,18 @@
 # 🏭 Semiconductor Manufacturing Operations Platform
 
-Enterprise platform for monitoring semiconductor fabrication processes, equipment health, wafer production, and predictive maintenance using Machine Learning.
+Enterprise platform for monitoring semiconductor fabrication processes, equipment health, wafer production, and predictive maintenance.
 
 ## 📋 Project Overview
 
-This platform provides comprehensive monitoring and management of semiconductor fabrication operations with AI-powered predictive maintenance.
+This platform provides comprehensive monitoring and management of semiconductor fabrication operations with predictive maintenance capabilities.
 
-### Key Features
-- ML-Based Predictive Maintenance - Random Forest model predicts equipment failures
+### Features
+- Predictive Maintenance - Equipment failure predictions
 - Wafer Production Management - Track batches, stages, and completion
 - Equipment Health Monitoring - Real-time equipment status and metrics
 - Yield Analytics - Defect analysis and process variation
 - Executive Dashboard - KPIs and operational reports
-- JWT Authentication - Secure API access
-- Kubernetes Deployment - Production-ready container orchestration
-- CI/CD Pipeline - GitHub Actions with automated testing
+- User Authentication - Login for employees and admins
 
 ## 🚀 Quick Start
 
@@ -22,9 +20,8 @@ This platform provides comprehensive monitoring and management of semiconductor 
 - Docker and Docker Compose
 - Python 3.11+
 - Node.js 18+
-- Minikube for Kubernetes
 
-### Docker Compose (Recommended)
+### Docker Compose
 Clone the repository:
 git clone https://github.com/maryam-batool-sleepy-cat/Semiconductor-platform.git
 cd Semiconductor-platform
@@ -41,7 +38,6 @@ Access the platform:
 Frontend: http://localhost:5173
 API: http://localhost:8000
 API Docs: http://localhost:8000/docs
-Grafana: http://localhost:3000 (admin/admin)
 
 ### Kubernetes (Minikube)
 Start Minikube:
@@ -51,7 +47,6 @@ eval $(minikube docker-env)
 Build images:
 docker build -t semiconductor-api:latest ./backend
 docker build -t semiconductor-frontend:latest ./frontend
-docker build -t semiconductor-simulator:latest -f data-simulator/Dockerfile .
 
 Deploy:
 kubectl apply -f k8s/deployment.yaml
@@ -64,11 +59,10 @@ kubectl port-forward -n semiconductor service/api 8000:8000
 
 Employee Login: employee / employee123
 Admin Login: admin / admin123
-Grafana: admin / admin
 
-## 🧠 ML-Based Predictive Maintenance
+## 🧠 Predictive Maintenance
 
-The platform uses a Random Forest ML model to predict equipment failures based on:
+The platform predicts equipment failures based on:
 - Operating hours
 - Temperature
 - Vibration
@@ -82,30 +76,14 @@ The platform uses a Random Forest ML model to predict equipment failures based o
 4. Priority levels (Urgent/High/Medium/Low) are assigned
 5. Recommended actions are generated
 
-## 🔐 Security
+## 📊 Monitoring
 
-### JWT Authentication
-- All API endpoints protected with JWT tokens
-- Tokens expire after 30 minutes
-- Role-based access control (Admin/Employee)
-
-### Network Security (Kubernetes)
-- Network policies restrict service-to-service communication
-- Only authorized services can access databases
-
-## 📊 Monitoring Stack
-
-### Prometheus
-- Collects API metrics (requests, errors, latency)
-- Time-series database for operational data
-
-### Grafana
-- Pre-built dashboards for API and equipment metrics
-- Visualize health scores and predictions
+- Prometheus: Collects API metrics
+- Grafana: Pre-built dashboards for API and equipment metrics
 
 ## 🛠️ Technology Stack
 
-Backend: FastAPI, Python, Scikit-learn
+Backend: FastAPI, Python
 Frontend: React, TypeScript, Vite
 Database: PostgreSQL, Redis
 Monitoring: Prometheus, Grafana
@@ -118,18 +96,16 @@ semiconductor-platform/
 backend/
   app/
     api/          API endpoints
-    core/         Security, database
+    core/         Database, security
     models/       Database models
     services/     ML, predictive maintenance
-  requirements.txt
 frontend/
   src/
     components/   React components
     services/     API services
-  package.json
-k8s/                  Kubernetes manifests
-monitoring/           Prometheus/Grafana
-docs/                 Documentation
+k8s/              Kubernetes manifests
+monitoring/       Prometheus/Grafana
+docs/             Documentation
 
 ## 📚 Documentation
 
@@ -140,20 +116,6 @@ Admin Guide: docs/ADMIN_GUIDE.md
 ML Guide: docs/ML_GUIDE.md
 Kubernetes Guide: docs/KUBERNETES_GUIDE.md
 Troubleshooting: docs/TROUBLESHOOTING.md
-
-## 🔒 Standards Compliance
-
-SEMI E10 – Equipment Reliability
-SEMI E79 – Equipment Performance
-IEC 62443 – Industrial Security
-ISO 9001 – Quality Management
-ISO 55001 – Asset Management
-ISO/IEC 27001 – Information Security
-NIST CSF 2.0 – Cybersecurity
-NIST SP 800-82 – OT Security
-ISA-95 – Enterprise Integration
-COBIT 2019 – IT Governance
-ITIL 4 – Service Management
 
 ## 🧪 Testing
 
@@ -168,4 +130,3 @@ Expected: 16 passed
 This project is for educational purposes.
 
 ---
-Copyright 2026 NanoChip Semiconductor Corporation
