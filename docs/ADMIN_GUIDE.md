@@ -31,9 +31,9 @@ curl -X POST http://localhost:8000/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"admin123"}'
 
-## System Monitoring
+### System Monitoring
 
-### Health Checks
+## Health Checks
 # Check API health
 curl http://localhost:8000/health
 
@@ -43,7 +43,7 @@ sudo docker exec -it semiconductor-postgres pg_isready -U postgres
 # Check all containers
 sudo docker-compose ps
 
-### Logs
+## Logs
 # View API logs
 sudo docker-compose logs api -f
 
@@ -53,20 +53,21 @@ sudo docker-compose logs postgres -f
 # View all logs
 sudo docker-compose logs -f
 
-### Monitoring Stack
+## Monitoring Stack
 - Prometheus: http://localhost:9090
 - Grafana: http://localhost:3000 (admin/admin)
+(only on local method using docker compose)
 
 ## Backup Procedures
 
-### Database Backup
+# Database Backup
 # Create backup
 sudo docker exec -t semiconductor-postgres pg_dump -U postgres semiconductor > backup.sql
 
 # Restore
 cat backup.sql | sudo docker exec -i semiconductor-postgres psql -U postgres semiconductor
 
-### Automated Backups
+## Automated Backups
 Create backup.sh:
 #!/bin/bash
 DATE=$(date +%Y%m%d_%H%M%S)
@@ -82,23 +83,23 @@ python -m pytest tests/test_all.py -v
 
 # Expected: 16 passed
 
-## Troubleshooting
+### Troubleshooting
 
-### API Not Responding
+## API Not Responding
 sudo docker-compose logs api
 sudo docker-compose restart api
 
-### Database Connection Error
+## Database Connection Error
 sudo docker-compose restart postgres
 sudo docker-compose restart api
 
-### Frontend Not Loading
+## Frontend Not Loading
 cd frontend
 rm -rf node_modules package-lock.json
 npm install --legacy-peer-deps
 npm run dev
 
-### Simulator Issues
+## Simulator Issues
 # Check token
 curl -X POST http://localhost:8000/api/v1/auth/login \
   -H "Content-Type: application/json" \
@@ -113,5 +114,5 @@ python3 data-simulator/simulate.py
 - All API endpoints are protected
 - Role-based access control is implemented
 - Network policies restrict service access in Kubernetes
-
+-recommended to change the passwords through the code. 
 ---
