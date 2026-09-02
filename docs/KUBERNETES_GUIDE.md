@@ -1,5 +1,7 @@
 # Kubernetes Deployment Guide
 
+-disclaimer you can access the frontend and backend and simulator but you won't get grafana, prometheus or keylock by using this method to launch the project. 
+
 ## Prerequisites
 
 - Minikube installed
