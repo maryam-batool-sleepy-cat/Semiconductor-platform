@@ -4,6 +4,17 @@
 
 The platform implements defense-in-depth security controls including identity management, network segmentation, and secure communication.
 
+LINKS FOR KEY LOCK: 
+
+keylock for employee : http://localhost:8081/realms/semiconductor/account/#/
+
+keylock for admin : http://localhost:8081/realms/master/protocol/openid-connect/auth?client_id=security-admin-console&redirect_uri=http%3A%2F%2Flocalhost%3A8081%2Fadmin%2Fmaster%2Fconsole%2F&state=8fbc1a66-a310-4c2e-a0e6-e1c99776fc53&response_mode=fragment&response_type=code&scope=openid&nonce=667a56f4-8314-4863-a8cb-12e65222c27b&code_challenge=i-3ZiZ3ac5NfU4rOqA8XQOFs1RDQSXFXQpzS9EgSQoE&code_challenge_method=S256
+
+Passwords : 
+Employee : testuser/test123
+
+Admin : admin/admin
+
 ## Authentication and Authorization
 
 ### Keycloak Integration
