@@ -43,9 +43,12 @@ Click View Details on any prediction to see:
 
 ### 3. Training the Model
 The model trains automatically when you view predictions. To manually trigger training:
+
 curl http://localhost:8000/api/v1/maintenance/predictions
 
-### 4. Python Training
+### 4. Python Training (work in progress)
+(put this in a file) 
+```python
 from app.services.ml_model import predictor
 from app.core.database import SessionLocal
 from app.models.equipment import Equipment
@@ -54,6 +57,7 @@ db = SessionLocal()
 equipment = db.query(Equipment).all()
 train_data = predictor.generate_training_data(equipment)
 predictor.train(train_data)
+```
 
 ## Health Score Calculation
 
