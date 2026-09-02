@@ -34,26 +34,14 @@ source backend/venv/bin/activate
 pip install -r backend/requirements.txt
 python3 data-simulator/simulate.py
 
+start frontend
+cd frontend
+npm run dev
+
 Access the platform:
 Frontend: http://localhost:5173
 API: http://localhost:8000
 API Docs: http://localhost:8000/docs
-
-### Kubernetes (Minikube)
-Start Minikube:
-minikube start --driver=docker
-eval $(minikube docker-env)
-
-Build images:
-docker build -t semiconductor-api:latest ./backend
-docker build -t semiconductor-frontend:latest ./frontend
-
-Deploy:
-kubectl apply -f k8s/deployment.yaml
-
-Port forward:
-kubectl port-forward -n semiconductor service/frontend 8080:80
-kubectl port-forward -n semiconductor service/api 8000:8000
 
 ## 🔑 Login Credentials
 
@@ -66,7 +54,6 @@ The platform predicts equipment failures based on:
 - Operating hours
 - Temperature
 - Vibration
-- Age
 - Maintenance history
 
 ### How It Works
