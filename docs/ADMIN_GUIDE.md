@@ -1,13 +1,13 @@
-### Administrator Guide - Semiconductor Manufacturing Platform
+# Administrator Guide - Semiconductor Manufacturing Platform
 
 ## System Administration
 
-# Access Admin Dashboard
+### Access Admin Dashboard
 1. Login as admin (admin/admin123)
 2. Go to Admin Dashboard
 3. View executive KPIs and reports
 
-# User Management
+### User Management
 Users are managed via hardcoded credentials:
 
 Employee: employee / employee123
@@ -19,13 +19,13 @@ To add users, modify the login handlers in:
 
 ## Authentication
 
-# JWT Token System
+### JWT Token System
 - All API endpoints require JWT tokens
 - Tokens expire after 30 minutes
 - The system auto-refreshes tokens
 - Tokens include user role information
 
-# Token Management
+### Token Management
 To manually get a token:
 curl -X POST http://localhost:8000/api/v1/auth/login \
   -H "Content-Type: application/json" \
@@ -33,24 +33,24 @@ curl -X POST http://localhost:8000/api/v1/auth/login \
 
 ## System Monitoring
 
-# Health Checks
-~Check API health
+### Health Checks
+-Check API health
 curl http://localhost:8000/health
 
-~Check database
+-Check database
 sudo docker exec -it semiconductor-postgres pg_isready -U postgres
 
-~Check all containers
+-Check all containers
 sudo docker-compose ps
 
-# Logs
-~View API logs
+### Logs
+-View API logs
 sudo docker-compose logs api -f
 
-~View database logs
+-View database logs
 sudo docker-compose logs postgres -f
 
-~View all logs
+-View all logs
 sudo docker-compose logs -f
 
 ## Monitoring Stack
@@ -60,14 +60,14 @@ sudo docker-compose logs -f
 
 ## Backup Procedures
 
-# Database Backup
-# Create backup
+### Database Backup
+-Create backup
 sudo docker exec -t semiconductor-postgres pg_dump -U postgres semiconductor > backup.sql
 
-# Restore
+-Restore
 cat backup.sql | sudo docker exec -i semiconductor-postgres psql -U postgres semiconductor
 
-# Automated Backups
+-Automated Backups
 Create backup.sh:
 #!/bin/bash
 DATE=$(date +%Y%m%d_%H%M%S)
@@ -77,34 +77,34 @@ find backups -name "*.sql" -mtime +7 -delete
 
 ## Running Tests
 
-# Run all tests
+### Run all tests
 cd backend
 python -m pytest tests/test_all.py -v
-# Expected: 16 passed
+### Expected: 16 passed
 
 ## Troubleshooting
 
-# API Not Responding
+### API Not Responding
 sudo docker-compose logs api
 sudo docker-compose restart api
 
-# Database Connection Error
+### Database Connection Error
 sudo docker-compose restart postgres
 sudo docker-compose restart api
 
-# Frontend Not Loading
+### Frontend Not Loading
 cd frontend
 rm -rf node_modules package-lock.json
 npm install --legacy-peer-deps
 npm run dev
 
 ## Simulator Issues
-# Check token
+### Check token
 curl -X POST http://localhost:8000/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"admin123"}'
 
-# Restart simulator
+### Restart simulator
 python3 data-simulator/simulate.py
 
 ## Security Notes
