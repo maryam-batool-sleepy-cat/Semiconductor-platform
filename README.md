@@ -23,20 +23,31 @@ This platform provides comprehensive monitoring and management of semiconductor 
 
 ### Docker Compose
 Clone the repository:
+```bash
 git clone https://github.com/maryam-batool-sleepy-cat/Semiconductor-platform.git
+
 cd Semiconductor-platform
+```
 
 Start all services:
+```bash
 sudo docker-compose up -d
 
 Start the data simulator:
-source backend/venv/bin/activate
-pip install -r backend/requirements.txt
-python3 data-simulator/simulate.py
 
-start frontend
+source backend/venv/bin/activate
+
+pip install -r backend/requirements.txt
+
+python3 data-simulator/simulate.py
+```
+
+start frontend:
+```bash
 cd frontend
+
 npm run dev
+```
 
 Access the platform:
 Frontend: http://localhost:5173
@@ -66,52 +77,51 @@ The platform predicts equipment failures based on:
 ## 📊 Monitoring
 
 - Prometheus: Collects API metrics
-links : http://localhost:9090/targets
-http://localhost:9090/query?g0.expr=up&g0.show_tree=0&g0.tab=graph&g0.range_input=1h&g0.res_type=auto&g0.res_density=medium&g0.display_mode=lines&g0.show_exemplars=0
+  links :
+
+  http://localhost:9090/targets
+
+  http://localhost:9090/query?g0.expr=up&g0.show_tree=0&g0.tab=graph&g0.range_input=1h&g0.res_type=auto&g0.res_density=medium&g0.display_mode=lines&g0.show_exemplars=0
 
 - Grafana: Pre-built dashboards for API and equipment metrics
-link (credential admin/admin) http://localhost:3000/?orgId=1
+  link (credential admin/admin): http://localhost:3000/?orgId=1
 
 ## 🛠️ Technology Stack
 
 Backend: FastAPI, Python
+
 Frontend: React, TypeScript, Vite
+
 Database: PostgreSQL, Redis
+
 Monitoring: Prometheus, Grafana
+
 Container: Docker, Kubernetes
+
 CI/CD: GitHub Actions
-
-## 📁 Project Structure
-
-semiconductor-platform/
-backend/
-  app/
-    api/          API endpoints
-    core/         Database, security
-    models/       Database models
-    services/     ML, predictive maintenance
-frontend/
-  src/
-    components/   React components
-    services/     API services
-k8s/              Kubernetes manifests
-monitoring/       Prometheus/Grafana
-docs/             Documentation
 
 ## 📚 Documentation
 
 Installation Guide: docs/INSTALLATION.md
+
 Deployment Guide: docs/DEPLOYMENT.md
+
 User Guide: docs/USER_GUIDE.md
+
 Admin Guide: docs/ADMIN_GUIDE.md
+
 ML Guide: docs/ML_GUIDE.md
+
 Kubernetes Guide: docs/KUBERNETES_GUIDE.md
+
 Troubleshooting: docs/TROUBLESHOOTING.md
 
 ## 🧪 Testing
 
 Run all tests:
+
 cd backend
+
 python -m pytest tests/test_all.py -v
 
 Expected: 16 passed
