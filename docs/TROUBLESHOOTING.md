@@ -201,3 +201,47 @@ sudo docker-compose up -d grafana
 (if grafana dashboard doesn't show then you need to make it yourself)
 
 
+
+## New Service Issues
+
+### Loki Shows 404
+- Loki is API-only, no web UI. 404 is expected.
+- Query logs via: curl "http://localhost:3100/loki/api/v1/query?query={container=\"semiconductor-api\"}"
+
+### Loki Ingester Not Ready
+- Wait 1-2 minutes for Loki to fully start
+- Check status: curl http://localhost:3100/ready
+
+### Promtail Not Collecting Logs
+- Check if running: sudo docker-compose ps promtail
+- Check logs: sudo docker-compose logs promtail
+- Verify port: 9080 should be exposed
+
+### Keycloak Login Fails
+- Default: admin / admin
+- Realm: semiconductor
+- Check container: sudo docker-compose ps keycloak
+- Check logs: sudo docker-compose logs keycloak
+
+### Node-RED Not Accessible
+- URL: http://localhost:1880
+- Check container: sudo docker-compose ps nodered
+- Check logs: sudo docker-compose logs nodered
+
+### OPA Policy Errors
+- Policies in: /opa/policies/
+- Rego syntax requires `if` keyword
+- Test: curl http://localhost:8181/v1/data/auth/allow
+
+### Grafana Cannot Connect to Loki
+- Data source URL: http://loki:3100
+- Check Loki is running: sudo docker-compose ps loki
+- Test from Grafana container: sudo docker exec semiconductor-grafana wget -O- http://loki:3100/ready
+
+### Kafka Connection Refused
+- Check Kafka is running: sudo docker-compose ps kafka
+- Check logs: sudo docker-compose logs kafka
+- Verify port 9092 is exposed
+
+---
+
