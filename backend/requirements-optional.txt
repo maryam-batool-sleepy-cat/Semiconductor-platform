@@ -1,0 +1,4 @@
+# Optional packages - install separately
+# OPC UA - choose one:
+# asyncua==0.9.90
+# opcua-async==1.0.0
