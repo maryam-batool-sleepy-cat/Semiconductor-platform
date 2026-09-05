@@ -32,3 +32,20 @@ pyjwt==2.8.0
 pytest==7.4.0
 pytest-asyncio==0.21.0
 httpx==0.25.1
+opcua-asyncio==1.0.1
+
+# OPC UA
+opcua-asyncio==1.0.1
+
+# Kafka
+kafka-python==2.0.2
+
+# OpenTelemetry
+opentelemetry-api==1.21.0
+opentelemetry-sdk==1.21.0
+opentelemetry-exporter-otlp==1.21.0
+opentelemetry-instrumentation-fastapi==0.42b0
+opentelemetry-instrumentation-sqlalchemy==0.42b0
+
+# OPA integration
+requests==2.31.0

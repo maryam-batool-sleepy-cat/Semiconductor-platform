@@ -115,17 +115,58 @@ services:
     user: "472"
     restart: unless-stopped
 
+  nodered:
+    image: nodered/node-red:latest
+    container_name: semiconductor-nodered
+    ports:
+      - "1880:1880"
+    volumes:
+      - ./nodered/data:/data
+    restart: unless-stopped
+
+  loki:
+    image: grafana/loki:2.9.0
+    container_name: semiconductor-loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./monitoring/loki-config.yaml:/etc/loki/config.yaml
+      - loki_data:/loki
+    command: -config.file=/etc/loki/config.yaml
+    restart: unless-stopped
+
+  promtail:
+    image: grafana/promtail:2.9.0
+    container_name: semiconductor-promtail
+    ports:
+      - "9080:9080"
+    volumes:
+      - ./monitoring/promtail-config.yaml:/etc/promtail/config.yaml
+      - /var/log:/var/log:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: -config.file=/etc/promtail/config.yaml
+    restart: unless-stopped
+
+  opa:
+    image: openpolicyagent/opa:latest
+    container_name: semiconductor-opa
+    ports:
+      - "8181:8181"
+    volumes:
+      - ./opa/policies:/policies
+    command: run --server --addr=:8181 /policies
+    restart: unless-stopped
+
   keycloak:
     image: quay.io/keycloak/keycloak:22.0.1
     container_name: semiconductor-keycloak
     environment:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
-      KEYCLOAK_IMPORT: /opt/keycloak/data/import/realm.json
     ports:
       - "8081:8080"
     volumes:
-      - ./keycloak/realm.json:/opt/keycloak/data/import/realm.json:ro
+      - ./keycloak/realm.json:/opt/keycloak/data/import/realm.json
       - keycloak_data:/opt/keycloak/data
     command: start-dev --import-realm
     restart: unless-stopped
@@ -135,3 +176,4 @@ volumes:
   redis_data:
   prometheus_data:
   keycloak_data:
+  loki_data:

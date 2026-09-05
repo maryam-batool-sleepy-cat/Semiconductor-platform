@@ -1,0 +1,56 @@
+[
+  {
+    "id": "1",
+    "type": "tab",
+    "label": "Equipment Monitoring",
+    "disabled": false,
+    "info": ""
+  },
+  {
+    "id": "2",
+    "type": "http in",
+    "z": "1",
+    "name": "Equipment API",
+    "url": "/equipment",
+    "method": "get",
+    "swaggerDoc": "",
+    "x": 120,
+    "y": 100,
+    "wires": [["3"]]
+  },
+  {
+    "id": "3",
+    "type": "http request",
+    "z": "1",
+    "name": "Get Equipment",
+    "method": "GET",
+    "ret": "obj",
+    "pay": null,
+    "url": "http://api:8000/api/v1/equipment/",
+    "tls": "",
+    "x": 300,
+    "y": 100,
+    "wires": [["4"]]
+  },
+  {
+    "id": "4",
+    "type": "function",
+    "z": "1",
+    "name": "Format Response",
+    "func": "msg.payload = {\n  equipment: msg.payload,\n  timestamp: new Date().toISOString(),\n  source: \"Node-RED\"\n};\nreturn msg;",
+    "x": 480,
+    "y": 100,
+    "wires": [["5"]]
+  },
+  {
+    "id": "5",
+    "type": "http response",
+    "z": "1",
+    "name": "Send Response",
+    "statusCode": "200",
+    "headers": {},
+    "x": 650,
+    "y": 100,
+    "wires": []
+  }
+]

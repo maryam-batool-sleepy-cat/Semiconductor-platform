@@ -1,0 +1,55 @@
+site_name: Semiconductor Manufacturing Platform
+site_description: Enterprise Semiconductor Manufacturing Operations Platform
+site_author: NanoChip Semiconductor Corporation
+repo_url: https://github.com/maryam-batool-sleepy-cat/Semiconductor-platform
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: green
+      accent: green
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+
+markdown_extensions:
+  - admonition
+  - codehilite
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - pymdownx.tabbed
+  - pymdownx.details
+  - tables
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: installation.md
+    - Quick Start: quickstart.md
+  - User Guide:
+    - Dashboard: user/dashboard.md
+    - Wafer Production: user/wafer.md
+    - Equipment Health: user/equipment.md
+    - Yield Analytics: user/yield.md
+    - Maintenance: user/maintenance.md
+  - Admin Guide:
+    - Administration: admin/administration.md
+    - Security: admin/security.md
+    - Monitoring: admin/monitoring.md
+  - Developer Guide:
+    - Architecture: developer/architecture.md
+    - API Reference: developer/api.md
+    - ML Model: developer/ml.md
+    - Testing: developer/testing.md
+  - Deployment:
+    - Docker: deployment/docker.md
+    - Kubernetes: deployment/kubernetes.md
+  - Troubleshooting: troubleshooting.md
+  - Changelog: changelog.md

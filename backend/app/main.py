@@ -87,3 +87,32 @@ async def health_check(db: Session = Depends(get_db)):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
+# Add at the top with other imports
+from app.services.kafka_service import kafka_service
+from app.core.telemetry import telemetry
+
+# Add after app creation
+# Setup OpenTelemetry
+telemetry.setup()
+telemetry.instrument_fastapi(app)
+
+# Setup Kafka
+kafka_service.connect()
+
+# Add at startup
+@app.on_event("startup")
+async def startup_event():
+    logger.info("Starting Kafka service")
+    kafka_service.connect()
+    logger.info("Starting OPC UA server")
+    from app.services.opcua import opcua_server
+    opcua_server.start()
+    logger.info("All services started")
+
+# Add at shutdown
+@app.on_event("shutdown")
+async def shutdown_event():
+    logger.info("Shutting down services")
+    from app.services.opcua import opcua_server
+    opcua_server.stop()
