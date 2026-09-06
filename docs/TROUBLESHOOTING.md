@@ -200,10 +200,6 @@ sudo docker-compose up -d grafana
 ```
 (if grafana dashboard doesn't show then you need to make it yourself)
 
-
-
-## New Service Issues
-
 ### Loki Shows 404
 - Loki is API-only, no web UI. 404 is expected.
 - Query logs via: curl "http://localhost:3100/loki/api/v1/query?query={container=\"semiconductor-api\"}"
