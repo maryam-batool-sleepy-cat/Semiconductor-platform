@@ -1,4 +1,4 @@
-# 🏭 Semiconductor Manufacturing Operations Platform
+# Semiconductor Manufacturing Operations Platform
 
 Enterprise platform for monitoring semiconductor fabrication processes, equipment health, wafer production, and predictive maintenance.
 
@@ -13,6 +13,7 @@ This platform provides comprehensive monitoring and management of semiconductor 
 - Yield Analytics - Defect analysis and process variation
 - Executive Dashboard - KPIs and operational reports
 - User Authentication - Login for employees and admins
+- JWT Token Security - Secure API access
 
 ## 🚀 Quick Start
 
@@ -58,6 +59,7 @@ API Docs: http://localhost:8000/docs
 
 Employee Login: employee / employee123
 Admin Login: admin / admin123
+Grafana admin / admin
 
 ## 🧠 Predictive Maintenance
 
@@ -76,55 +78,56 @@ The platform predicts equipment failures based on:
 
 ## 📊 Monitoring
 
-- Prometheus: Collects API metrics
-  links :
+### Prometheus
+- Collects API metrics (requests, errors, latency)
+- Time-series database for operational data
+-  http://localhost:9090/targets
+-  http://localhost:9090/query?g0.expr=up&g0.show_tree=0&g0.tab=graph&g0.range_input=1h&g0.res_type=auto&g0.res_density=medium&g0.display_mode=lines&g0.show_exemplars=0
 
-  http://localhost:9090/targets
+### Grafana
+- Visualize health scores and predictions
+- http://localhost:3000
 
-  http://localhost:9090/query?g0.expr=up&g0.show_tree=0&g0.tab=graph&g0.range_input=1h&g0.res_type=auto&g0.res_density=medium&g0.display_mode=lines&g0.show_exemplars=0
+### Loki & Promtail
+- Centralized log aggregation
+- Automatic log collection from all containers
+- Query logs by container or service
+- (for promtail loki can be seen only through command line) http://localhost:9080/
 
-- Grafana: Pre-built dashboards for API and equipment metrics
-  link (credential admin/admin): http://localhost:3000/?orgId=1
+## 🔐 Security
+### JWT Authentication
+- All API endpoints protected with JWT tokens
+- Tokens expire after 30 minutes (regenerates on its own)
+- Role-based access control (Admin/Employee)
 
 ## 🛠️ Technology Stack
-
-Backend: FastAPI, Python
-
-Frontend: React, TypeScript, Vite
-
-Database: PostgreSQL, Redis
-
-Monitoring: Prometheus, Grafana
-
-Container: Docker, Kubernetes
-
-CI/CD: GitHub Actions
+- Backend: FastAPI, Python
+- Frontend: React, TypeScript, Vite
+- Database: PostgreSQL, Redis
+- Monitoring: Prometheus, Grafana, Loki
+- Logging: Promtail
+- Integration: Node-RED, OPC UA, Kafka, MQTT
+- Security: JWT
+- Container: Docker, Kubernetes
+- CI/CD: GitHub Actions
 
 ## 📚 Documentation
-
-Installation Guide: docs/INSTALLATION.md
-
-Deployment Guide: docs/DEPLOYMENT.md
-
-User Guide: docs/USER_GUIDE.md
-
-Admin Guide: docs/ADMIN_GUIDE.md
-
-ML Guide: docs/ML_GUIDE.md
-
-Kubernetes Guide: docs/KUBERNETES_GUIDE.md
-
-Troubleshooting: docs/TROUBLESHOOTING.md
+- Role-based access control (Admin/Employee)
+- Installation Guide: docs/INSTALLATION.md
+- User Guide: docs/USER_GUIDE.md
+- Admin Guide: docs/ADMIN_GUIDE.md
+- ML Guide: docs/ML_GUIDE.md
+- Kubernetes Guide: docs/KUBERNETES_GUIDE.md
+- Troubleshooting: docs/TROUBLESHOOTING.md
 
 ## 🧪 Testing
 
 Run all tests:
-
+```bash
 cd backend
-
 python -m pytest tests/test_all.py -v
-
-Expected: 16 passed
+```
+Expected: 8/16 passed
 
 ## 📄 License
 
