@@ -105,6 +105,23 @@ Apply network policies
 kubectl apply -f k8s/network-policy.yaml
 ```
 
+## Database
+Open a new tab and put this in
+```bash
+kubectl port-forward -n semiconductor service/postgres 5432:5432
+```
+Then in a different tab run this 
+```bash
+psql -h localhost -p 5432 -U postgres -d semiconductor
+```
+You will enter the database and move around it. 
+
+To exit it you put in
+```bash
+\q
+```
+You can't access it through localhost or url only accessible through the command line. 
+
 ## Troubleshooting
 
 ### Pods Not Starting
